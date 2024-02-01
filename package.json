@@ -18,5 +18,8 @@
   "homepage": "https://github.com/QWXL/ZERO-CRUISE#readme",
   "devDependencies": {
     "electron": "^28.2.0"
+  },
+  "dependencies": {
+    "electron-events": "^0.2.0"
   }
 }

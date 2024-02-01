@@ -2,12 +2,12 @@
  * @Author: QWXL@zero-ai.online
  * @Date: 2024-01-31 23:36:03
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-01 20:13:32
+ * @LastEditTime: 2024-02-01 22:56:55
  * @FilePath: \cruise-client\main.js
  */
 const electron = require('electron');
 const path = require('path');
-const { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage, shell } = electron
+const { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage, ipcMain, shell } = electron
 let tabPressedTime = 0;
 let tray
 
@@ -40,6 +40,15 @@ const createMainWindow = () => {
     return win
   }
 
+
+
+  ipcMain.on('menuClick', (event, number) => {
+    if (number = 1) {
+      shell.openExternal('https://zero-ai.online');
+    }      
+    win.hide();
+  })
+  
 
   app.whenReady().then(() => {
     let win = createMainWindow()

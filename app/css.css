@@ -1136,6 +1136,7 @@ input {
     width: 60%;
     padding: 3vw 20%;
     background-color: rgb(49, 49, 49);
+    margin-top: 10px;
 }
 
 
@@ -1361,8 +1362,9 @@ input {
         position: fixed;
         width: 100%;
         right:0%;
-        top:25%;
+        top:5%;
         z-index: 1;
+        text-align: center;
     }
     
     .title {

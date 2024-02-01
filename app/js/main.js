@@ -7,6 +7,7 @@
 
 
 // 秋晚夕落 版权所有
+
 const input = document.getElementById('input')
 const inputButton = document.getElementById('input-button')
 let chatContainer = document.getElementById('chat')
@@ -1279,4 +1280,8 @@ function relocatePromise() {
     })
 }
 
+
+function handleButtonClick(number) {
+    window.api.menuClick(number)
+}
 
