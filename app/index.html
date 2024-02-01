@@ -1,0 +1,247 @@
+
+<title>ZERO ONLINE</title>
+<head>
+    <meta charset="UTF-8">
+	<link rel="stylesheet" href="css.css">
+    <link rel="stylesheet" href="iconfont.css">
+    <link rel="preload" as="style" onload="this.rel='stylesheet'" href="./lib/prism.css">
+    <link rel="prefetch" href="https://zero-ai.online/" as="document">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="./favicon.ico">
+  </head>
+<body id="body">
+
+    <script>
+
+      </script>
+
+<div id="readyOnLoad" class="readyOnLoad"> 
+  <img src="./AKETA SPACE-Fixed.webp" class="readyOnLoadImg" width="25%">
+  <div style="position:absolute;top:66%;width: 100%;">
+    <div id="loading" class="loading">
+    <img id="point1-load" src="point.png">
+    <img id="point2-load" src="point.png">
+    <img id="point3-load" src="point.png">
+    </div>
+  </div>
+  <p class="readyOnLoadLabel" id="loadLabel">正在加载</p>
+</div>
+
+<div id="main">
+  <p id="HeaderTime" class="HeaderTime HeaderTimeHover">
+  时间
+  </p>
+<div class="chat" id="chat"></div>
+</div>
+<div class="input-container" id="input-container">
+  <p class="tokens" id="tokens">Tokens:</p>
+  <div class="input-div">
+    <textarea id="input" type="text" placeholder="滴滴滴…电波接收中——键入字符以唤起零…" autocomplete="off" autofocus warp="hard"    ></textarea>
+    <button class="input-button" id="input-button" onclick="onclickButton()"><span class="iconfont icon-send"></span>
+    </button>
+  </div>
+  <p class="named" id="named"><span id="named-name"></span> Version Release 1.2 | <span id="netStauts">正在链接</span>
+    <br><a href="https://docs.qq.com/form/page/DWVVReWhiempoUXZq" class="named" id="feedback">问题反馈</a>
+    <span id="download-apk"> <a href="./aketa.zeroai.apk" download="ZeroAI.apk" class="named" >下载Android手机端</a></span></p></div>
+    
+
+<div id="more-container" class="more-container">
+  <button class="more-button" id="more-button" onclick="toggleSelectMenu()" title="MORE"><span class="iconfont icon-gengduo-xian more-icon" id="more-icon"></span></button>
+</div>
+
+<div class="setAPI-container" id="setAPI" style="display: none;">
+  <button class="setAPI-closeBtn" onclick="toggleFreeAPIMenu()" title="关闭"><span class="iconfont icon-guanbi more-icon" id="more-icon"></span></button>
+  <p class="setAPI-warn">高级功能，对此功能的效果，本开发团队不做任何保证。</p>
+  <table class="setAPI-input">
+<tr>
+    <th><p class="setAPI-label">Root Adress</p></th><th><input type="text" placeholder="在此键入你的API URL（终结点）。" value="https://api.openai.com/v1/chat/completions" id="adressInput"></th>
+</tr>
+<tr>
+    <th><p class="setAPI-label-two">API KEY</p></th><th><input type="text" placeholder="在此处键入你的ChatGPT API Key" value="sk-" id="apiInput"></th>
+</tr>
+<tr>
+    <th><p class="setAPI-label-thr">模型</p></th><th><input type="text" class="two" placeholder="在此处键入你要使用的模型ID" value="" id="modelInput"></th>
+</tr>
+<tr>
+  <th colspan="2"><p class="setAPI-stats" id="setAPIstats"></p></th><th><p class="setAPI-saveTips" id="setAPIsaveTips"></p></th>
+</tr>
+<tr>
+  <th><button class="setAPI-applyToggle setAPI-btn" onclick="applyToggleFreeAPI()">启用/停用</button></th><th>  <button class="setAPI-save setAPI-btn" onclick="saveFreeAPIConfig()">保存</button>  </th>
+</tr>
+  </table>
+  <div>
+</div>
+</div>
+
+<div class="code-container" id="giftCode" style="display: none;">
+  <h1 style="margin-left: 2%;margin-top: 1%;">填写兑换码</h1>
+  <button class="code-closeBtn" onclick="toggleCodeMenu()" title="关闭"><span class="iconfont icon-guanbi more-icon"></span></button>
+  <input type="text" placeholder="在此处键入你的兑换码" id="code-input" minlength="16" maxlength="16">
+  <p id="codeStatus" class="code-status"></p>
+  <button class="code-btn" onclick="GiftCode()"><span class="iconfont icon-gou more-icon"></span></button>
+</div>
+
+<div class="prompt-container" id="customPrompt" style="display: none;">
+  <h1 style="margin-left: 2%;margin-top: 1%;">设置自定义Prompt</h1>
+  <button class="code-closeBtn" onclick="togglePromptMenu()" title="关闭"><span class="iconfont icon-guanbi more-icon"></span></button>
+  <span style="margin-left: 2%;">在下方键入你的自定义Prompt，留空则使用系统默认Prompt。</span>
+  <textarea placeholder="在此键入自定义Prompt" id="prompt-input" autocomplete="off" warp="hard"></textarea>
+  <button class="prompt-btn" onclick="setPrompt()"><span class="iconfont icon-gou more-icon"></span></button>
+</div>
+
+<!-- 下拉菜单 -->
+<div id="select-container" class="select-container" style="display: none;">
+  <table class="select-table" rule="none">
+    <colgroup>
+      <col style="width: 80%;">
+      <col>
+    </colgroup>
+  <tr>
+    <th>
+      <div class="th-label">Plus 模式</div>
+
+    </th>
+    <th>
+      <div class="plus-switch">
+        <input type="checkbox" id="plusModeSwitch" name="plusMode" disabled>
+        <label for="plusModeSwitch"></label>
+      </div>
+    </th>
+  </tr>
+  <tr>
+    <th>
+      <div class="th-label">深思熟虑</div>
+
+    </th>
+    <th>
+      <div class="plus-switch">
+        <input type="checkbox" id="thinkModeSwitch" name="thinkMode" disabled>
+        <label for="thinkModeSwitch"></label>
+      </div>
+    </th>
+  </tr>
+  <tr>
+    <th>
+      <div class="th-label">自定义Prompt</div> 
+    </th>
+    <th>
+      <button class="small-button" style="background-color: rgb(246, 255, 0);" id="promptButton" onclick="togglePromptMenu();toggleSelectMenu()" disabled><span class="iconfont icon-edit btn-icon" id="" style="color: gray;"></span></button>
+    </th>
+  </tr>
+  <tr>
+    <th>
+      <div class="th-label">重置聊天会话</div>
+    </th>
+    <th>
+      <button class="small-button" id="" onclick="refreshScreen();toggleSelectMenu()" style="background-color: darkred;"><span class="iconfont icon-ic_Refresh btn-icon" id=""></span></button>
+    </th>
+  </tr>
+  <tr>
+    <th>
+      <div class="th-label">设置自由接口</div>
+    </th>
+    <th>
+      <button class="small-button" id="" onclick="toggleFreeAPIMenu();toggleSelectMenu()"><span class="iconfont icon-yuanshujufenxi btn-icon" id=""></span></button>
+    </th>
+  </tr>
+  <tr>
+    <th>
+      <div class="th-label">填写兑换码</div> 
+    </th>
+    <th>
+      <button class="small-button" id="" onclick="toggleCodeMenu();toggleSelectMenu()"><span class="iconfont icon-key btn-icon" id=""></span></button>
+    </th>
+  </tr>
+
+  <tr>
+    <th colspan="2"><hr></th>
+  </tr>
+  <tr class="output-inputChat">
+    <th>
+      <div class="th-label">导出记录</div> 
+    </th>
+    <th>
+      <button class="small-button" id="" onclick="outputChat();toggleSelectMenu()"><span class="iconfont icon-save btn-icon" id=""></span></button>
+    </th>
+  </tr>
+  <tr class="output-inputChat">
+    <th>
+      <div class="th-label">导入记录</div> 
+    </th>
+    <th>
+      <label for="chatInput" class="small-button"><span class="iconfont icon-catalog-download btn-icon" id=""></span></label>
+    </th>
+  </tr>
+  <tr class="output-inputChat">
+    <th colspan="2"><hr></th>
+  </tr>
+  <tr>
+    <th>
+      <div class="th-label" id="showId">ID:　#</div>
+    </th>
+  </tr> 
+  <tr id="showUG-tr">
+    <th id="showUG-th">
+      <div class="th-label" id="showUG">权益</div>
+    </th>
+    <th>
+      <button class="small-button" id="showUGBtn" onclick="" style="display: none;"><span class="iconfont icon-tishi-xian btn-icon" id=""></span></button>
+    </th>
+  </tr>
+  <tr>
+    <th colspan="2"><hr></th>
+  </tr>
+  <tfoot>
+  <tr>
+    <th colspan="2">
+      <button class="small-button" style="width: 80%;margin-left: 10%;margin-bottom: 8px;border-radius: 6px;" id="backToIndex" onclick="window.location.replace(`https:\/\/www.zero-ai.online`);readyOnLoad.style.display == 'block';showLoadLabel('正在加载')">返回首页 <span class="iconfont icon-back btn-icon" id=""></span></button>
+    </th>
+  </tr>
+  </tfoot>
+  </table>
+</div>
+
+<input type="file" id="chatInput" accept=".zero" onchange="inputChat();toggleSelectMenu()" style="display: none"> <!-- file input -->
+
+
+<div class="actaSpace" id="actaLogo">
+<div id="buttonMatrix">
+  <div>
+  <div class="MenuButton" onclick="handleButtonClick(1)">
+    <div class="MenuIcon"><span class="iconfont icon-shouye-home MenuIconFont" id=""></span></div>
+  </div>
+  <br><span>返回首页</span>
+  </div>
+  <div>
+  <div class="MenuButton" onclick="handleButtonClick(2)">
+    <div class="MenuIcon">Icon2</div>
+  </div>
+  <br><span>Label2</span>
+  </div>
+  <div>
+  <div class="MenuButton" onclick="handleButtonClick(3)">
+    <div class="MenuIcon">Icon3</div>
+  </div>
+  <br><span>Label3</span>
+</div>
+  <div>
+  <div class="MenuButton" onclick="handleButtonClick(4)">
+    <div class="MenuIcon">Icon4</div>
+  </div>
+  <br><span>Label4</span>
+  </div>
+</div>
+</div>
+
+<script src="./lib/prism.js"></script>
+<script src="./lib/marked.min.js"></script>
+<script src="./lib/clipboard.min.js"></script>
+<script src="./lib/socket.io.js"></script>
+<script src="./js/axios.min.js"></script> <!-- axios http -->
+<script src="./js/main.js"></script> <!-- 主JavaScript文件 -->
+<script src="./js/select.js"></script> <!-- 下拉菜单选择器 -->
+<script src="./js/freeAPI.js"></script> <!-- 自由接口 -->
+<script src="./js/mobileApk.js"></script> <!-- app校验 -->
+</body>
+
+
