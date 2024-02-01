@@ -1114,8 +1114,12 @@ input {
 
 
   .MenuIconFont {
-    font-size: 5rem !important
-  }
+    font-size: 5rem !important;
+    background: linear-gradient(315deg, #42d392 25%, #647eff);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
 
 
 .MenuButton:hover {

@@ -2,7 +2,7 @@
  * @Author: QWXL@zero-ai.online
  * @Date: 2024-01-31 23:36:03
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-01 22:56:55
+ * @LastEditTime: 2024-02-01 23:40:01
  * @FilePath: \cruise-client\main.js
  */
 const electron = require('electron');
@@ -53,6 +53,9 @@ const createMainWindow = () => {
   app.whenReady().then(() => {
     let win = createMainWindow()
     win.webContents.openDevTools()
+    win.on('blur', () => {
+      win.hide();
+    })
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) win = createMainWindow()
     })
