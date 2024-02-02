@@ -9,7 +9,6 @@
 const { contextBridge, ipcRenderer } = require('electron/renderer')
 
 contextBridge.exposeInMainWorld('api', {
-  menuClick: (number) => ipcRenderer.send('menuClick', number)
 })
 
 window.addEventListener('DOMContentLoaded', () => {

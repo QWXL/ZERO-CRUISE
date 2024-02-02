@@ -1281,7 +1281,4 @@ function relocatePromise() {
 }
 
 
-function handleButtonClick(number) {
-    window.api.menuClick(number)
-}
 

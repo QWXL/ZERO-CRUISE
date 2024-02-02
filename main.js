@@ -42,12 +42,6 @@ const createMainWindow = () => {
 
 
 
-  ipcMain.on('menuClick', (event, number) => {
-    if (number = 1) {
-      shell.openExternal('https://zero-ai.online');
-    }      
-    win.hide();
-  })
   
 
   app.whenReady().then(() => {
