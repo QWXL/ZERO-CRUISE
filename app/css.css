@@ -13,6 +13,7 @@
 #main {
     pointer-events:none;
     user-select: none;
+    overflow-x: hidden      ;
 }
 
 html {
@@ -1313,7 +1314,7 @@ input {
     .chatBubbleMessage {
         margin-top: 0.5%;
         margin-left: 2%;
-        font-size: 0.8rem;
+        font-size: 0.9  ;
         white-space:pre-wrap;
         user-select: text;
     }

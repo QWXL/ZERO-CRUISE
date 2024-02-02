@@ -2,7 +2,7 @@
  * @Author: QWXL@zero-ai.online
  * @Date: 2024-01-31 23:36:03
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-01 23:40:01
+ * @LastEditTime: 2024-02-02 13:49:13
  * @FilePath: \cruise-client\main.js
  */
 const electron = require('electron');
@@ -64,13 +64,9 @@ const createMainWindow = () => {
     tray.setContextMenu(contextMenu)
     tray.setToolTip('ZERO AI Cruise Client')
     tray.setTitle('ZERO AI')
-      globalShortcut.register('Tab', () => {
-        const currentTime = Date.now();
-        if (currentTime - tabPressedTime < 300) {
+      globalShortcut.register('Alt+Space', () => {
           // 双击 Tab 动作
           windowToggleVisible()
-        }
-        tabPressedTime = currentTime;
       });
   })
 
