@@ -983,6 +983,7 @@ a.openlogoBackground {
         border: 0;
         border-radius: 3px;
         margin-top: 8px;
+        cursor: pointer;
     }
     
     .small-button:hover {
@@ -1506,7 +1507,14 @@ a.openlogoBackground {
 
 .saves-table .save:hover {
     box-shadow: var(--shadow-elevation-medium);
+}
 
+.saves-table .save[outputId] {
+    cursor: grab;
+}
+
+.saves-table .save[outputId]:active {
+    cursor: grabbing;
 }
 
 .saves-table hr.nowContent {
@@ -1563,6 +1571,7 @@ a.openlogoBackground {
     margin-top: 8px;
     color: #ddd;
     opacity: 0.7;
+    cursor: pointer;
 }
 
 .clear-button:hover span {
