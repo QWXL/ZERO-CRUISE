@@ -2,7 +2,7 @@
  * @Author: QWXL@zero-ai.online
  * @Date: 2024-01-31 23:36:03
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-12 18:11:58
+ * @LastEditTime: 2024-02-12 19:30:08
  * @FilePath: \cruise-client\main.js
  */
 const electron = require('electron');
@@ -93,7 +93,6 @@ const createMainWindow = () => {
 
   app.whenReady().then(async () => {
     let win = createMainWindow()
-    win.webContents.openDevTools()
 
     win.on('blur', () => {
       win.hide();
@@ -101,6 +100,16 @@ const createMainWindow = () => {
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) win = createMainWindow()
     })
+    const electronLocalshortcut = require('electron-localshortcut')
+
+    win.on('focus', (event) => {
+        electronLocalshortcut.register(win, ['CommandOrControl+R','CommandOrControl+Shift+R', 'F5'], () => {})
+    })
+    
+    win.on('blur', (event) => {
+        electronLocalshortcut.unregisterAll(win)
+    })
+
     win.webContents.session.webRequest.onHeadersReceived((details, callback) => { // 处理跨域问题
       callback({
         responseHeaders: {
