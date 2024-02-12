@@ -136,7 +136,9 @@ inputContainer.addEventListener("click", function(event) {
 Logo.addEventListener("click", function(event) {
   closeWhenClickOther()
 });
-
+savesContainer.addEventListener("click", function(event) {
+  closeWhenClickOther()
+})
 function closeWhenClickOther() {
   if (selectContainer.style.display == 'block') {
     toggleSelectMenu()

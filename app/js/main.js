@@ -37,6 +37,7 @@ const leftSaveModeSwitch = document.getElementById('leftSaveModeSwitch');
 const PromptMenu = document.getElementById('customPrompt');
 const PromptInput = document.getElementById('prompt-input');
 const logo = document.getElementById('actaLogo')
+const savesContainer = document.getElementById('saves-container')
 let plusPermission = false
 function showLoadLabel(text) {
     const loadLabel = document.getElementById('loadLabel') || {textContent:""}
