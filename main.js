@@ -2,7 +2,7 @@
  * @Author: QWXL@zero-ai.online
  * @Date: 2024-01-31 23:36:03
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-12 18:11:58
+ * @LastEditTime: 2024-02-12 19:34:52
  * @FilePath: \cruise-client\main.js
  */
 const electron = require('electron');
@@ -93,7 +93,6 @@ const createMainWindow = () => {
 
   app.whenReady().then(async () => {
     let win = createMainWindow()
-    win.webContents.openDevTools()
 
     win.on('blur', () => {
       win.hide();
@@ -101,6 +100,9 @@ const createMainWindow = () => {
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) win = createMainWindow()
     })
+    win.removeMenu()
+    Menu.setApplicationMenu(Menu.buildFromTemplate([]))
+
     win.webContents.session.webRequest.onHeadersReceived((details, callback) => { // 处理跨域问题
       callback({
         responseHeaders: {
@@ -135,7 +137,6 @@ const createMainWindow = () => {
       },
       { label: '退出程序', type: 'normal', role: "quit"     },
     ])
-    console.log(contextMenu.items[0].click)
 
     tray.setContextMenu(contextMenu)
     tray.setToolTip('ZERO AI Cruise Client')
