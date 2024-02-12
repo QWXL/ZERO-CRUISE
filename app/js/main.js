@@ -6,9 +6,21 @@
 // 秋晚夕落 版权所有
 
 
+
 // 秋晚夕落 版权所有
 
+const root_url = localStorage.getItem('root_url') || "https://chat.zero-ai.online"
+
+
+window.api.beforeQuit((value) => {
+    if (value) {
+        window.api.setData(localStorage)
+    }
+})
+const inputContainer = document.getElementById('input-container')
+const inputDiv = document.getElementsByClassName('input-div')[0]
 const input = document.getElementById('input')
+const named = document.getElementById('named')
 const inputButton = document.getElementById('input-button')
 let chatContainer = document.getElementById('chat')
 const main = document.getElementById('main')
@@ -17,6 +29,14 @@ const Logo = document.getElementById('actaLogo')
 const HeaderTime = document.getElementById('HeaderTime')
 const body = document.getElementById('body')
 const netStauts = document.getElementById('netStauts')
+const plusModeSwitch = document.getElementById('plusModeSwitch');
+const thinkModeSwitch = document.getElementById('thinkModeSwitch');
+const cruiseModeSwitch = document.getElementById('cruiseModeSwitch'); 
+const cruiseModeSwitchLabel = document.getElementById('cruiseModeSwitchLabel'); 
+const leftSaveModeSwitch = document.getElementById('leftSaveModeSwitch'); 
+const PromptMenu = document.getElementById('customPrompt');
+const PromptInput = document.getElementById('prompt-input');
+const logo = document.getElementById('actaLogo')
 let plusPermission = false
 function showLoadLabel(text) {
     const loadLabel = document.getElementById('loadLabel') || {textContent:""}
@@ -37,32 +57,87 @@ const nameList = {
     "system":"ZERO 管理员",
     "error":"<s>ZERO AI</s>",
     "letter":"属于你的信"
-
 }
-const socket = io(`https://chat.zero-ai.online/`,{
-    query: {
-        id: localStorage.getItem('id') || ''
-    },
-    autoConnect: false
-});
 
-axios.get(`https://zero-ai.online/api/onetext`, (req,res) => {
-    input.setAttribute('placeholder',res.data)
+const boolean = {
+    "true":true,
+    "false":false,
+    null:false,
+    undefined:false,
+    true:true,
+    false:false
+}
+let chatCount = 0
+let canSend = true
+let FreeAPIapply = false
+
+String.prototype.trim = function (char, type) {
+    if (char) {
+    if (type == 'left') {
+    return this.replace(new RegExp('^\\'+char+'+', 'g'), '');
+    } else if (type == 'right') {
+    return this.replace(new RegExp('\\'+char+'+$', 'g'), '');
+    }
+    return this.replace(new RegExp('^\\'+char+'+|\\'+char+'+$', 'g'), '');
+    }
+    return this.replace(/^\s+|\s+$/g, '');
+    };
+    
+    
+
+axios.get(`https://zero-ai.online/api/onetext?count=2`)
+.then ((res) => {
+    const string = res.data.split('\n')
+    input.setAttribute('placeholder',string[0].trim('n', 'right'))
+    document.getElementById('oneText').textContent = string[1].trim('n', 'right')
 })
 
 
-function relinkIO() {
+let socket = relinkIO()
+
+ function relinkIO() {
+    try {
+    const Osocket = io(`${root_url}/`,{
+        query: {
+            id: localStorage.getItem('id') ?? '',
+            cruise: true,
+            app: true,
+            cruiseMode: boolean[localStorage.getItem('cruiseMode') ?? "false"]
+        },
+        autoConnect: false
+    });
     console.log(`连接至 ZERO API`)
-    if (socket.connected) {
-        socket.disconnect();
+    netStauts.textContent = `正在链接`
+    if (window.socket?.connected || false) {
+        window.socket?.disconnect();
+        netStauts.textContent = `正在重连`
     } 
-    socket.connect()
-    if (socket.connected) {
+    if (Osocket?.connected || false) {
+        Osocket?.disconnect();
+        netStauts.textContent = `正在重连`
+    }  
+    Osocket.connect()
+    if (Osocket.connected) {
         netStauts.textContent = `链接正常`
         netStauts.style.color = `rgba(242,242,242,0.7)`
     }
+    console.log('Done')
+    window.socket = Osocket
+    try {
+    socket = Osocket
+    } catch {}
+    sockets(Osocket)
+    return Osocket
+} catch (e) {
+    console.error(e)
+    createErrBubble(getTime(),'error',`在尝试链接至服务端时出现问题：${e}，请重试或联系开发者。`,null,'relink')
+    try {
+    cruiseModeSwitch.style.cursor = 'not-allowed';
+    cruiseMode = !cruiseModeSwitch.checked()
+    } catch {}
+    localStorage.setItem('cruiseMode',!cruiseModeSwitch.checked);
 }
-relinkIO()
+}
 
 let timeTitle = true
 const customRenderer = new marked.Renderer();
@@ -91,17 +166,8 @@ const markedOptions = {
 };
 
   marked.use(markedOptions)
-const boolean = {
-    "true":true,
-    "false":false,
-    null:false,
-    undefined:false,
-    true:true,
-    false:false
-}
-let chatCount = 0
-let canSend = true
-let FreeAPIapply = false
+
+
 axios.get('https://ipapi.co/json/').then((response) => {
     const ip = response.data.ip
     sessionStorage.setItem('ip',ip)
@@ -138,23 +204,36 @@ function onclickButton() {
 }
 
 if (input) {
-    if (!mobileCheck()) {
- input.onkeydown = function(e) {
-    //判断如果用户按下了左Ctrl+回车键 
-    if(e.ctrlKey && e.key == 'Enter') {  
-        input.value += '\n'
-    }
-    if (e.key == 'Enter' && !e.ctrlKey) {
-        e.preventDefault();// 禁止回车的默认换行
-        onclickButton();  
-    }
-}} else {
-    input.onkeydown=function(e) {
-    if (e.key == 'Enter') {
-        e.preventDefault();// 禁止回车的默认换行
-        onclickButton();  
-    }}
-    }
+    input.onkeydown = function(e) {
+        if (input.value.length == 0) {
+            inputDiv.style.height = ''
+            named.style.marginTop = ''
+        }
+
+        // 判断如果用户按下了左Ctrl+回车键
+        if (e.ctrlKey && e.key == 'Enter') {
+            var cursorPos = input.selectionStart; // 获取当前光标位置
+            var textBefore = input.value.substring(0, cursorPos); // 光标之前的文本
+            var textAfter  = input.value.substring(cursorPos, input.value.length); // 光标之后的文本
+
+            // 在光标处添加换行符并更新输入框值，同时保持光标在正确位置
+            input.value = textBefore + '\n' + textAfter;
+            inputDiv.style.height = '5rem'
+            named.style.marginTop = '95px'
+            e.preventDefault();  // 防止默认事件发生
+
+            // 将光标定位到新插入内容之后
+             setTimeout(function() {
+                input.selectionStart = cursorPos + 1;
+                input.selectionEnd   = cursorPos + 1;
+             }, 1);
+        }
+
+        if (e.key == 'Enter' && !e.ctrlKey) {
+           e.preventDefault();// 禁止回车默认操作以避开默认换行功能。
+           onclickButton();
+       }
+   };
 }
 
 
@@ -169,6 +248,10 @@ function inputByUser(message) {
     const mid = createCode()
     if (message) {
     chatLog.push({"role":"user","content":`${message}`})
+    if (document.getElementById('saveNow').getAttribute('readSaves')) {
+    document.getElementById('saveNow').removeAttribute('readSaves')
+    document.getElementById('nowTitle').textContent = document.getElementById('nowTitle').textContent.replace('[存档] ','')
+    }
     }
     let tag = 'normal'
     if (plus) {
@@ -201,9 +284,9 @@ function inputByUser(message) {
         }
     if (!FreeAPIapply) {
     // 如果启用自由接口功能，那么就不向服务器发送请求，转而本地使用用户提供的API处理
-    let url = `https://chat.zero-ai.online/ai`
+    let url = `${root_url}/ai`
     if (plus) {
-            url = `https://chat.zero-ai.online/ai/plus`
+            url = `${root_url}/ai/plus`
     } 
     let config = {
         method: 'post',
@@ -220,7 +303,8 @@ function inputByUser(message) {
             memory: localStorage.getItem('memory') || '无',
             customPrompt: customPrompt,
             app: app,
-            mid: mid
+            mid: mid,
+            cruise:true
         },
         timeout: 36000000, 
         headers: {
@@ -233,13 +317,17 @@ function inputByUser(message) {
             return
         } else if (response.data !== "Forbidden") {
             createErrBubble(getTime(),'error',`链接出现错误，来自服务端的回复：${JSON.stringify(response.data?.AISend?.content || response)} <br>请联系开发者或重试。`)     
-            chatContainer.removeChild(tempBubble)
+            try {
+    chatContainer.removeChild(tempBubble)
+     } catch {}
             input.setAttribute('placeholder','滴滴滴…连接丢失，请稍后重试……')
         }
         }).catch((err) => {
             console.log(err)
             createErrBubble(getTime(),'error',`链接出现错误，代码：${err.code}(${err.message}) <br>请联系开发者。`)     
-            chatContainer.removeChild(tempBubble)
+            try {
+    chatContainer.removeChild(tempBubble)
+     } catch {}
             input.setAttribute('placeholder','滴滴滴…连接丢失，请稍后重试……')
         })
     } else {
@@ -260,7 +348,9 @@ function inputByUser(message) {
             }*/
             console.log(data)
             createChatBubble(result.AISend.time,result.AISend.user,result.AISend.content,tag)
-            chatContainer.removeChild(tempBubble)
+            try {
+    chatContainer.removeChild(tempBubble)
+     } catch {}
             chatContainer.scrollTop = chatContainer.scrollHeight
             canSend = true
             input.classList.remove('cantSend');
@@ -270,7 +360,9 @@ function inputByUser(message) {
         }).catch ((err) => {
             console.log(err)
             createChatBubble(getTime(),'error','客户端系统出现错误，代码：' + err.code,tag)     
-            chatContainer.removeChild(tempBubble)
+            try {
+    chatContainer.removeChild(tempBubble)
+     } catch {}
             input.setAttribute('placeholder','滴滴滴…连接丢失，请稍后重试……')
         })
     }
@@ -298,20 +390,28 @@ function parseResult(result) {
            "user": "assistant"
        }
    }*/
-   if (result.AISend.user == 'error') {
+
+   document.getElementById('saveBtn').disabled = false
+   document.getElementById('createBtn').disabled = false
+   if (result.AISend.user == 'error') { 
     createErrBubble(getTime(),'error',result.AISend.content,tag)     
+    try {
     chatContainer.removeChild(tempBubble)
+     } catch {}
     input.setAttribute('placeholder','滴滴滴…连接丢失，请稍后重试……')
     return
     }
     if (result.err) {
         createErrBubble(getTime(),'error','系统出现错误，代码：' + result.err + '<br>请联系开发者。',tag)     
-       chatContainer.removeChild(tempBubble)
+       try {
+    chatContainer.removeChild(tempBubble)
+     } catch {}
        return
     }
     if (!result.ban) {
     console.log(result)
     let content = result.AISend.content
+    window.api.newMessage({content:content})
     if (result.AISend.content.includes('<hide>')) {
         const regex = /<hide>(.*)<\/hide>/gs;
         const match = result.AISend.content.match(regex);
@@ -322,7 +422,9 @@ function parseResult(result) {
     } else {
     createChatBubble(result.AISend.time,result.AISend.user,content,tag,result.mid,chatIndex)
     }
+    try {
     chatContainer.removeChild(tempBubble)
+     } catch {}
     if (!result.AISend.content.includes('[control:weather]')) {
         if (result.memory) {
             let newMemory
@@ -468,7 +570,7 @@ function createChatBubble(time,who,content,tag,eid,chatIndex) {
     const chatBubble = document.createElement('div')
     const chatBubbleWho = document.createElement('p')
     const chatBubbleTime = document.createElement('p')
-    const chatBubbleMessage = document.createElement('p')
+    const chatBubbleMessage = document.createElement('div')
     chatBubble.setAttribute('chatIndex',chatIndex)
     if (eid) {
         chatBubble.id = eid
@@ -516,6 +618,7 @@ function createChatBubble(time,who,content,tag,eid,chatIndex) {
         chatEditContainer.classList.add('chatEdit')
         chatEditContainer.title = `编辑`
         const chatEditBtn = document.createElement('span')
+        chatEditBtn.id = `editBtn-${eid}`
         chatEditBtn.classList.add('iconfont','icon-a-bianji-edit1')
         chatEditBtn.setAttribute('onclick',`editMessage("${eid}")`)
         chatEditBtn.style.fontSize = `1.1rem`
@@ -565,17 +668,20 @@ let oldMessageOfEdit = ``
 function editMessage(pmid) {
     const targetElement = document.getElementById(pmid);
     const oldElement = targetElement.getElementsByClassName('chatBubbleMessage')[0]
+    const editBtn = document.getElementById(`editBtn-${pmid}`)
+    editBtn.style.display = 'none'
     const tempTextInput = document.createElement('textarea')
     const oldMessage = oldElement.textContent
     console.log(oldMessage)
     oldMessageOfEdit = oldMessage
     tempTextInput.textContent = oldMessage
-    tempTextInput.style.height = `${oldElement.clientHeight + 7}px`
+    tempTextInput.style.height = `${oldElement.clientHeight + 16}px`
     tempTextInput.classList.add('editing')
     tempTextInput.placeholder = `在此键入新的内容。`
     oldElement.innerHTML = ``
     oldElement.appendChild(tempTextInput);
     oldElement.innerHTML += `<div style="margin: 0 auto;"><button class="btnInChat" style="margin-top:20px;padding:10px;"  onclick="cancelEdit('${pmid}')">取消<span class="iconfont icon-icon_line_close closeHideBtn"></span></button><span style="height:50px;border-right: white solid 2px;display:inline-block;margin-bottom:-18px;width:10;margin-right:0"></span><button class="btnInChat" style="margin-top:20px;padding:10px;display:inline-block;margin-left:10" onclick="applyEdit('${pmid}')">确定<span class="iconfont icon-gou closeHideBtn"></span></button></div>`
+
     return pmid
 }
 
@@ -585,6 +691,8 @@ function editMessage(pmid) {
  * @returns `pmid` 参数的值。
  */
 function cancelEdit(pmid) {
+    const editBtn = document.getElementById(`editBtn-${pmid}`)
+    editBtn.style.display = 'block'
     const targetElement = document.getElementById(pmid);
     const messageElement = targetElement.getElementsByClassName('chatBubbleMessage')[0]
     messageElement.innerHTML = ``
@@ -599,6 +707,8 @@ function cancelEdit(pmid) {
  * @returns 变量“pmid”的值。
  */
 function applyEdit(pmid) {
+    const editBtn = document.getElementById(`editBtn-${pmid}`)
+    editBtn.style.display = 'block'
     const targetElement = document.getElementById(pmid);
     const targetIndex = targetElement.getAttribute('chatIndex')
     const messageElement = targetElement.getElementsByClassName('chatBubbleMessage')[0]
@@ -611,6 +721,7 @@ function applyEdit(pmid) {
         }
     })
     chatLog.splice(Number(targetIndex) + 1)
+    chatLog[Number(targetIndex)] = {role:"user", content:tempTextInput.value}
     inputByUser()
     return pmid
 }
@@ -631,7 +742,7 @@ function createWeatherCube(parentElement) {
     }
 
     let widget
-    axios.get("https://chat.zero-ai.online/ai/weatherAPI/key")
+    axios.get(`${root_url}/ai/weatherAPI/key`)
     .then((res) => {
     if (mobileCheck()) {
         widget =
@@ -716,8 +827,9 @@ function getTime(object) {
    * 函数“refreshScreen”重置聊天屏幕，清除聊天日志，设置输入占位符文本，显示徽标，启用发送消息，更新令牌计数，滚动到页面顶部，启动时间间隔，并可选择重新链接IO。
    * @param relink - `relink`
    * 参数是一个布尔值，指示函数是否应该执行重新链接操作。如果“relink”为“true”，该函数将调用“relinkIO()”函数。如果“relink”为“false”或未提供，则不。
+   * @param delFile - `delFile`参数是一个布尔值，指示函数是否要删除现在的会话存档，如果true则删除，false则不删除
    */
-  function refreshScreen(relink) {
+  function refreshScreen(relink,delFile) {
     chatLog = []
     chatContainer.innerHTML = ''
     input.setAttribute('placeholder','滴滴滴…电波接收中——键入字符以唤起零…')
@@ -728,26 +840,92 @@ function getTime(object) {
     } else {
         Logo.src = './AKETA SPACE-Fixed.webp'
     }
-    tokens.textContent = `Tokens:0/${maxTokens}（来自OpenAI的限制）`  
+    tokens.textContent = `Tokens:0/${maxTokens}`  
     token = 0 
     window.scrollTo({
         top: 0,
         behavior: "smooth"
     });
     timeTitle = true
-    body.style.height = window.screen.availHeight
+    body.style.height = ''
     startTimeInterval()
     if (relink) {
     relinkIO()
     }
+    document.getElementById('nowTitle').textContent = `新会话`
+    const nowOpid = document.getElementById('saveNow').getAttribute('outputId')
+    if (nowOpid && delFile) {
+        window.api.delSaveFile(nowOpid)
+        document.getElementById('saveNow').setAttribute('outputId','')
+    }
+    document.getElementById('saveBtn').disabled = true
+    document.getElementById('createBtn').disabled = true
   }
+
+  function sockets(socket) {
+
+ /**
+   * 函数“createNotifactionInMessage”用于创建提示性气泡内嵌套框，并可以往内填充文字与可选择的图标。
+   * @param content - 这个参数是嵌套框内的文字
+   * @param {Number} style - 这个参数用于选择要使用的图标与颜色，null/0为错误样式，1为提醒样式，2为确定样式。
+   * @returns - 将返回创建后的element，随后可以插入进要插入的地方。
+   */
+ function createNotifactionInMessage(content,style) {
+    let iconClass = ''
+    let pColor = ''
+    switch (style) {
+        case 0:
+            iconClass = 'iconfont icon-icon_line_close' // 错误icon
+            break;
+        case 1:
+            iconClass = 'iconfont icon-tishi-xian' // 提醒icon 
+            pColor = 'rgba(255,255,0,0.5)'
+            break;
+        case 2:
+            iconClass = 'iconfont icon-sure' // 确定icon
+            pColor = 'rgba(0,50,0,0.5)'
+            break;
+        default:
+            iconClass = 'iconfont icon-icon_line_close' // 错误icon
+            break;
+    }
+    // 创建一个新的段落元素
+    const messageTip = document.createElement('p');
+    messageTip.className = 'messageTip';
+  
+    // 创建一个图标元素
+    const iconElement = document.createElement('span');
+    iconElement.className = iconClass;
+    iconElement.style.marginBottom = '-35px';
+    iconElement.style.width = '20px';
+    iconElement.style.height = '20px';
+    iconElement.style.display = 'inline-block';
+    iconElement.style.marginRight= '10px';
+    iconElement.style.fontSize= '1rem';
+    pColor ? setColor() : null;
+
+    function setColor() {
+        messageTip.style.backgroundColor = pColor
+        messageTip.style.border = `${pColor} 2px solid`
+    }
+      // 将图标元素添加到段落中
+      messageTip.appendChild(iconElement);
+  
+      // 添加文本节点到段落中。content 是传入的参数，代表需要显示的消息内容。
+      const textNodeContent = content;
+      const textNode=document.createTextNode(textNodeContent);
+  
+      messageTip.appendChild(textNode);
+  
+      return messageTip
+  }
+  
+
 
 socket.on(`messageUnfit`, (arg) => {
     console.log(arg)
-    const html = `<p class="messageTip"><span class="iconfont icon-icon_line_close" style="margin-bottom: -35px;width: 20;height: 20;display: inline-block;margin-right: 10px;font-size:1rem;"></span>这条发言似乎有一些问题，监管AI认为此条言论不合适或违反了我们的使用声明（${arg.result.evaluation}），我们已推送该消息至后台管理人员处理。
-    </p>`
     const message = document.getElementById(`prompt-${arg.mid}`)
-    message.innerHTML += html
+    message.appendChild(createNotifactionInMessage(`这条发言似乎有一些问题，监管AI认为此条言论不合适或违反了我们的使用声明（${arg.result.evaluation}），我们已推送该消息至后台管理人员处理。（注：该功能仍在测试）`,1))
 });
 
 socket.on(`message-${localStorage.getItem('id')}`, (arg) => {
@@ -792,19 +970,41 @@ socket.on("connect", () => {
     netStauts.textContent = `链接正常`
     netStauts.style.color = `rgba(242,242,242,0.7)`
     console.log(`链接成功！`)
+    try {
+        cruiseModeSwitch.disabled = false;
+        cruiseModeSwitchLabel.style.cursor = 'pointer';
+    } catch {}
   });
 
   socket.on('disconnect', () => {
     netStauts.textContent = `链接终止`
     netStauts.style.color = `rgba(242,242,0,0.7)`
     console.log(`链接终止！`)
+    try {
+        cruiseModeSwitch.disabled = true;
+        cruiseModeSwitchLabel.style.cursor = 'wait';
+    } catch {}
   });
 
   socket.on('error', () => {
     netStauts.textContent = `链接丢失`
     netStauts.style.color = `rgba(242,0,0,0.7)`
-    console.log(`链接终止！`)
+    console.log(`链接丢失！`)
+    try {
+        cruiseModeSwitch.disabled = true;
+        cruiseModeSwitchLabel.style.cursor = 'not-allowed';
+    } catch {}
   });
+
+  window.addEventListener('beforeunload', function (event) {
+    socket.disconnect();
+    if (boolean[this.localStorage.getItem('saveWhenLeft') || 'false'] && !document.getElementById('saveNow').getAttribute('readSaves')) {
+        saveFile()
+    }
+})
+
+  }
+
 showLoadLabel('通知预检测……')
 
 function checkDoc() {
@@ -835,8 +1035,8 @@ checkDoc()
     setInterval(() => {
         getACCESS('Access保活')
     }, 3600000);
+    checkACCESS()
 }
-checkACCESS()
 async function checkACCESS() {
         if (!FreeAPIapply) {
             getACCESS('Login',true)
@@ -861,15 +1061,15 @@ function createCuid() {
  * @returns 一个 Promise 对象。
  */
 async function getACCESS(message,UG) {
-    return new Promise((resolve,rejects) => {
+    return new Promise(async (resolve,rejects) => {
         let config = {
             method: 'post',
-            url: 'https://chat.zero-ai.online/uuid/login',
+            url: `${root_url}/uuid/login`,
             headers: { 
                'Content-Type': 'application/json'
             },
             data:{
-                data:JSON.stringify(getClientInfo()),
+                data:JSON.stringify(await getClientInfo()),
                 ip:sessionStorage.getItem('ip'),
                 id:localStorage.getItem('id'),
                 message:message || null
@@ -896,11 +1096,12 @@ async function getACCESS(message,UG) {
                     setPlusModeSwitch(res.plus)
                 } else if (res.code == 500) {
                     createErrBubble(getTime(),'error',res.content,'','access')
-                    showId.textContent = `ID:　#${localStorage.getItem('id')}`
+                    showId.innerHTML = `<s>ID:　#${localStorage.getItem('id')}</s>`
                     sessionStorage.setItem('plusTime',plusTime)
+                    socket.disconnect()
                 } else if (res.code == 202) {
                     localStorage.setItem('id',res.content)
-                    showId.textContent += res.content
+                    showId.textContent = `ID:　#${res.content}`
                     sessionStorage.setItem('access',res.access)
                     setPlusModeSwitch(res.plus)
                     createChatBubble(getTime(),'system',res.text)
@@ -915,6 +1116,7 @@ async function getACCESS(message,UG) {
                     createChatBubble(getTime(),'system',`你已被服务端标记为违规封禁，请加官方群（572900734）申诉解决。`)
                     setPlusModeSwitch(false)
                     showId.innerHTML = `<s>ID:　#${localStorage.getItem('id')}</s>`
+                    socket.disconnect()
                 }
                 setPreload(false)
                 console.log(res.plus)
@@ -971,8 +1173,9 @@ function showUGAlert(message) {
      * 函数“getClientInfo()”收集各种设备和浏览器信息以进行验证。
      * @returns 函数“getClientInfo()”返回一个对象，其中包含有关客户端设备和环境的各种信息。返回的对象包含以下属性：
      */
-    function getClientInfo() {
+    async function getClientInfo() {
         showLoadLabel('收集用于验证的设备数据……')
+        const mainData = await window.api.clientKey()
         const userAgent = navigator.userAgent;
         const screenWidth = window.screen.width;
         const screenHeight = window.screen.height;
@@ -999,6 +1202,7 @@ function showUGAlert(message) {
         const cuid = JSON.parse(localStorage.getItem('cuid')) // 由于该项数据储存于客户端且可以轻易修改，通常情况下是不可信的，在此仅作为次级鉴权凭证
         showLoadLabel('收集数据完成……')
         return {
+          mainData:mainData, // 主程序提供的数据以及clientKey
           canvas:canvasFingerprint, // canva指纹
           userAgent:userAgent, // ua
           WebGL: { // webGL信息
@@ -1050,7 +1254,8 @@ function showUGAlert(message) {
       // 当预载和页面装载都准备好之后要执行的操作放在这里面。
       function runOnPreloadComplete() {
         showLoadLabel('完成！');
-        
+        const animation = document.getElementById('readyOnLoadAnimation')
+        animation.style.animationPlayState = 'paused';
         if (readyOnLoad) {
             readyOnLoad.style.animation = 'loadReady 1s ease-in-out';
             setTimeout(() => {
@@ -1115,23 +1320,33 @@ async function outputChat() {
 /**
  * “inputChat”函数是一个异步函数，用于读取和处理包含聊天数据的 JSON 文件。
  */
-async function inputChat() {
+async function inputChat(fileData) {
+    let file = fileData
+    if (!file) {
     const fileInput = document.getElementById('chatInput');
-    
-    const file = fileInput.files[0];
+    file = fileInput.files[0];
+    }
     const reader = new FileReader();
     reader.onload = function(e) {
       try {
         refreshScreen()
         const jsonContent = JSON.parse(e.target.result);
-        timeTitle = false
+        timeTitle = false   
+        chatContainer.innerHTML = ''
         HeaderTime.textContent = `会话存档于：${jsonContent.outputTime}`
         // 在这里可以处理解析后的JSON内容
         chatLog = jsonContent.data.chat
-        createChatBubble(getTime(),'system',`以下内容为用户ID=${jsonContent.data.createBy}于${jsonContent.outputTime}导出的会话记录。<br>请不要点击任何会话中的超链接或任何可疑的可点击元素。我们不能保证该会话记录是否已被恶意窜改。<br>如有上述情况，请及时与我们反馈（report@thunder-drop.work）。`)
+        if (!jsonContent.data.cruise) {
+        createChatBubble(getTime(),'system',`以下内容为用户ID=${jsonContent.data.createBy}于${jsonContent.outputTime}保存的会话记录。<br>请不要点击任何会话中的超链接或任何可疑的可点击元素。我们不能保证该会话记录是否已被恶意窜改。<br>如有上述情况，请及时与我们反馈（qwxl@zero-ai.online）。`)
+        document.getElementById('nowTitle').textContent = `[存档] *来自网页端*`    
+        } else {
+            createChatBubble(getTime(),'system',`存档备注：${jsonContent.title}<br>存档日期：${jsonContent.outputTime}<br>存档ID：${jsonContent.outputID}<br>对话条数：${jsonContent.data.chat.length}`)
+            document.getElementById('nowTitle').textContent = `[存档] ${jsonContent.title}`
+        }
         chatContainer.innerHTML += jsonContent.data.element
         token = jsonContent.data.tokens
         body.style.height = jsonContent.data.height
+        document.getElementById('saveNow').setAttribute('readSaves','true')
     } catch (error) {
         createChatBubble(getTime(),'error',`你提交的会话记录读取失败！错误：${error}`)
     }
@@ -1147,33 +1362,6 @@ async function inputChat() {
         });
      }
      
-function startLoad() {
-    const one = document.getElementById('point1-load')
-    const two = document.getElementById('point2-load')
-    const three = document.getElementById('point3-load')
-
-    setInterval(() => {
-      one.style.opacity = '1'
-      two.style.opacity = '0'
-      three.style.opacity = '0'
-      setTimeout(() => {
-        one.style.opacity = '0'
-        two.style.opacity = '1'
-        three.style.opacity = '0'
-        setTimeout(() => {
-          one.style.opacity = '0'
-          two.style.opacity = '0'
-          three.style.opacity = '1'
-          setTimeout(() => {
-          one.style.opacity = '0'
-          two.style.opacity = '0'
-          three.style.opacity = '0'
-            }, 325);
-          }, 275);
-      }, 275);
-    }, 1425);
-}
-startLoad()
 
 
 function consoleWarn() {
@@ -1182,7 +1370,7 @@ function consoleWarn() {
     sessionStorage.setItem('access','')
     let config = {
         method: 'post',
-        url: `https://chat.zero-ai.online/ai/report`,
+        url: `${root_url}/ai/report`,
         headers: { 
            'Content-Type': 'application/json'
         },
@@ -1217,6 +1405,7 @@ function createErrBubble(time,who,content,tag,type) {
 }
 
 
+
 /**
  * 函数“reSend”是 JavaScript 中的异步函数，它接受两个参数“errorBubbleId”和“type”，并根据“type”的值执行不同的操作。
  * @param errorBubbleId - `errorBubbleId` 参数是需要从聊天容器中删除的错误气泡的 ID。
@@ -1229,7 +1418,9 @@ async function reSend(errorBubbleId,type) {
         tempBubble = createChatBubble('Connecting','assistant',"<img src='./loading.gif' class='tempBubble'>")
         getACCESS(`重新申请`,false)
         .then(() => {
-            chatContainer.removeChild(tempBubble)
+            try {
+    chatContainer.removeChild(tempBubble)
+     } catch {}
         })
     } else if (type == 'relink') {
         relinkIO()
@@ -1248,37 +1439,212 @@ async function reSend(errorBubbleId,type) {
 
 
 
-function relocatePromise() {
-    let config = {
-        method: 'post',
-        url: `https://chat.zero-ai.online/uuid/relocate/promise`,
-        headers: { 
-           'Content-Type': 'application/json'
-        },
-        data:{
-            id: localStorage.getItem('id'),
-            cuid: localStorage.getItem('cuid'),
-            docVer: localStorage.getItem('docVersion')
-        },
-        timeout: 36000000, 
-        headers: {
-            'Authorization': `Bearer ${sessionStorage.getItem('access')}`
-          }
+
+window.api.onWindowShow((value) => {
+    if (value) {
+        input.focus();
+        closeWhenClickOther()
+    }
+  })
+
+const dropLabel = document.getElementById('dropLabel')
+const dropScreen = document.getElementById('dropScreen')
+
+
+// 当有文件被拖动到区域上方时阻止默认行为
+body.addEventListener('dragover', function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    dropScreen.style.display = 'block'
+});
+
+// 当文件离开该区域时恢复原状，并再次防止默认行为。
+body.addEventListener('dragleave', function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    dropScreen.style.display = 'none'
+    });
+
+
+    // 当有文件被放下时执行相关操作
+    body.addEventListener('drop', function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    dropScreen.style.display = 'none'
+    var files = e.dataTransfer.files; // 获取文件对象
+    console.log(files)
+    var fileName = files?.[0]?.name;
+    var regexExtension = /(?:\.([^.]+))?$/.exec(fileName)[1];
+    if (regexExtension == 'zero') {
+        inputChat(files[0])
+    }
+    });
+
+
+
+
+    function saveFile(noDelOld) {
+        const ele = document.getElementById('saveNow')
+        if (chatLog.length !== 0 && !ele.getAttribute('readSaves')) { 
+        const outputID = `${createCode()}${createCode()}`
+        const nowTitle = document.getElementById('nowTitle')
+        if (nowTitle.textContent == '新会话') {
+        nowTitle.textContent = chatLog[0].content
         }
-    axios(config).then((res) => {
-        console.log(res.data)
-        if (res.data) {
-        console.log(`从服务端获取到迁移约定：${res.data}`)
-        window.location.href = `https://chat.zero-ai.online/?promise=${res.data}`
-        } else if (res.data.err){
-            if (res.data.err = 1) {
-                createChatBubble(getTime(),'error',`获取迁移约定时出现问题：传入的Cuid无效！`)
-            } else {
-                createChatBubble(getTime(),'error',`获取迁移约定时出现问题：传入的Id无效！`)
-            }
+        let data = {
+            title: ele.querySelector('p')?.textContent ,
+            outputTime: getTime(),
+            outputID: outputID,
+            data: {
+                cruise:true,
+                element:chatContainer.innerHTML,
+                chat:chatLog,
+                createBy:localStorage.getItem('id'),
+                tokens:token,
+                height:body.style.height
+           }
         }
-    })
+
+        if (ele.getAttribute("outputId") && !noDelOld) {
+            window.api.saveFile(`${outputID}.zero`,data,ele.getAttribute("outputId"))
+            ele.setAttribute("outputId",outputID)
+        } else {
+            window.api.saveFile(`${outputID}.zero`,data,null,!noDelOld)
+            ele.setAttribute("outputId",outputID)
+        }
+        return [outputID,ele.querySelector('p')?.textContent]
+    }
+    return null
+    }
+
+
+
+function addSaveToList(title,opid,time) {
+    // 创建一个表格行（tr）元素
+        var tr = document.createElement('tr');
+
+    // 创建一个表头（th）元素，并设置其类名和样式属性
+        var th = document.createElement('th');
+        th.className = 'bubble save';
+        th.style.marginTop = '0';
+        th.style.display = 'grid';
+        th.style.gridTemplateColumns = '7fr 3fr';
+        th.setAttribute('draggable', true);
+        th.setAttribute('outputId', opid);
+        th.id = `output-${opid}`;
+
+    // 创建一个段落（p）元素并添加文本内容“会话”
+        var p = document.createElement('p');
+        p.textContent = title;
+        p.classList.add('savesContent')
+
+    // 创建一个按钮（button）元素，并设置其类名、id、onclick事件和标题属性。同时隐藏该按钮。
+        var buttonDiv = document.createElement('div')
+
+        var button = document.createElement('button');
+        button.className='clear-button';
+        button.id='showUGBtn';
+        button.setAttribute("onclick",`delSaveFile('${opid}')`); // 这里应填写具体的点击事件处理函数
+        button.title='删除这个会话存档';
+        button.style.display='none';
+
+        var button2 = document.createElement('button');
+        button2.className='clear-button';
+        button2.id='showUGBtn';
+        button2.setAttribute("onclick",`editSaveTitle('${opid}')`); // 这里应填写具体的点击事件处理函数
+        button2.title='修改标题';
+        button2.style.display='none';
+
+    // 创建span用于在按钮内显示图标，设置其类名以引用特定的图标字体
+        var spanIcon=document.createElement("span");
+        spanIcon.className="iconfont icon-shanchu-delete btn-icon";
+        var spanIcon2=document.createElement("span");
+        spanIcon2.className="iconfont icon-a-bianji-edit1 btn-icon";
+    // 将span添加到按钮中，再将段落和按钮加入到表头单元格中，最后把该单元格加入到行中。
+        button.appendChild(spanIcon);
+        button2.appendChild(spanIcon2);
+        th.appendChild(p);
+        buttonDiv.appendChild(button2);
+        buttonDiv.appendChild(button);
+        th.appendChild(buttonDiv)
+        th.setAttribute('title',time)
+        tr.appendChild(th);
+
+        // 最后将创建好的 `tr` 元素添加到DOM中相应位置。例如：假设有ID为'tableBody'的<tbody>标签，则可以如下操作：
+        const histroyLine = document.getElementById('histroyLine')
+        histroyLine.insertAdjacentElement('afterend',tr)
+        return th
+}
+
+
+async function getSavesData() {
+const data = await window.api.getSavesData()
+for (i=0;i<data.length;i++) {
+    console.log(data[i])
+    addSaveToList(data[i].title.slice(0,9),data[i].outputID,data[i].outputTime)
+  }
+document.getElementById('histroyCount').textContent = data.length
+const saves = document.querySelectorAll('.save')
+saves.forEach((save) => {
+    save.ondragstart = (event) => {
+        dragFile(event,save)
+      }
+})
+
+}
+getSavesData()
+
+function dragFile(event,save) {
+    event.preventDefault()
+        const opid = save.getAttribute('outputId')
+        if (opid) {
+        window.api.startDrag(`${opid}.zero`)
+        } else {}
+}
+
+
+function addSaveFile() {
+    document.getElementById('saveNow').setAttribute('outputId','')
+    const info = saveFile(true)
+    if (info) {
+    document.getElementById('saveNow').setAttribute('outputId','')
+    const th = addSaveToList(info[1],info[0],getTime())
+    document.getElementById('histroyCount').textContent = Number(document.getElementById('histroyCount').textContent) + 1
+    th.ondragstart = (event) => {
+        dragFile(event,th)
+      }
+      refreshScreen(false,false)
+    }
+
 }
 
 
 
+function delSaveFile(opid) {
+    const ele = document.getElementById(`output-${opid}`).parentElement
+    ele.remove()
+    document.getElementById('histroyCount').textContent = Number(document.getElementById('histroyCount').textContent) - 1
+    window.api.delSaveFile(opid)
+}
+
+function editSaveTitle(opid) {
+    if (opid !== 'saveNow') {
+    const ele = document.getElementById(`output-${opid}`).firstElementChild
+    const newTitle = window.api.prompt(`在此输入这个存档的备注（≤10字）`,ele.textContent)
+    if (newTitle) {
+        ele.textContent = newTitle.slice(0,10)
+        window.api.editSaveTitle(opid,newTitle.slice(0,10))
+    }
+} else {
+    const pele = document.getElementById('saveNow')
+    const ele = document.getElementById('nowTitle')
+    const newTitle = window.api.prompt(`在此输入这个存档的备注`,ele.textContent)
+    if (newTitle) {
+        ele.textContent = newTitle
+        if (pele.getAttribute('outputId')) {
+            window.api.editSaveTitle(pele.getAttribute('outputId'),newTitle)
+    }
+}
+
+}
+}

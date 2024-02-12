@@ -1,0 +1,26 @@
+<html>
+<title>ZERO ONLINE</title>
+<head>
+    <meta charset="UTF-8">
+	<link rel="stylesheet" href="saves.css">
+    <link rel="stylesheet" href="iconfont.css">
+    <link rel="preload" as="style" onload="this.rel='stylesheet'" href="./lib/prism.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="./favicon.ico">
+  </head>
+<body id="body">
+    <script>
+        window.addEventListener('load' , () => {
+        const animation = document.getElementById('readyOnLoadAnimation')
+        animation.style.animationPlayState = 'paused';  
+        })
+
+    </script>
+
+    <div id="readyOnLoad" class="readyOnLoad"> 
+        <a href="#" class="openlogo readyOnLoadImg" id="readyOnLoadAnimation"></a>
+        <a href="#" class="openlogoBackground readyOnLoadImg"></a>
+        <p class="readyOnLoadLabel" id="loadLabel">正在加载</p>
+      </div>
+      
+</body>

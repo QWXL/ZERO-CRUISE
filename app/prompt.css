@@ -1,0 +1,127 @@
+div#container form#form { /*prompt提示框特供*/
+    overflow: hidden;
+}
+
+div#container form#form input { /*prompt提示框特供*/
+color: white;
+background-color: #555;
+border-radius: 5px;
+-webkit-border-radius: 5px;
+-moz-border-radius: 5px;
+-ms-border-radius: 5px;
+-o-border-radius: 5px;
+
+}
+
+div#container form#form #label { /*prompt提示框特供*/
+    text-align: center;
+    width: 100vw;
+    transition: 0;
+    -webkit-transition: 0;
+    -moz-transition: 0;
+    -ms-transition: 0;
+    -o-transition: 0;
+    color: white;
+}
+
+div#container form#form button { /* prompt提示框特供 */
+width: 5rem;
+text-align: center;
+height: auto;
+padding-top: 6px;
+padding-bottom: 6px;
+font-size: 1rem;
+background-color: #333;
+border: 0;
+border-radius: 3px;
+margin-top: 8px;
+}
+
+
+div#container form#form button:hover {
+    background-color: #555;
+    box-shadow: 0px 0px 18px 5px rgba(249, 249, 249, 0.27);
+}
+
+
+div#container form#form button span#cancel {
+    color: lightgray;
+    background-color: transparent;
+}
+
+
+div#container form#form button span#ok {
+    background: linear-gradient(315deg,#42d392 25%,#647eff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent
+}
+
+@font-face {
+    font-family: "Arial";
+    src:
+      local('Arial');  
+    }
+
+
+* {
+    transition: all 0.2s;
+    scrollbar-color: rgb(200,200,200) transparent;
+
+}
+
+
+html {
+    scrollbar-color: rgb(200,200,200) transparent;
+    overflow-x: hidden;
+    overflow-y: auto;
+    color-scheme: dark;
+    height: 100vh;
+}
+
+
+*::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+}
+    *::-webkit-scrollbar-thumb:hover {
+        background-color: rgb(220,220,220);
+        box-shadow: 0px 0px 18px 5px rgba(178, 178, 178, 0.27);
+    }
+    
+    *::-webkit-scrollbar-thumb:active {
+        background-color: rgb(242,242,242);
+        box-shadow: 0px 0px 18px 5px rgba(178, 178, 178, 0.27);
+    }
+
+    *::-webkit-scrollbar-thumb {
+        /*滚动条里面小方块*/
+        border-radius: 10px;
+        -webkit-border-radius: 10px;
+        -moz-border-radius: 10px;
+        -ms-border-radius: 10px;
+        -o-border-radius: 10px;
+        background-color: rgb(180,180,180);
+        height: 50%;
+    }
+      
+      *::-webkit-scrollbar-track {
+        /*滚动条里面轨道*/
+        border-radius: 10px;
+        background-color: rgb(100,100,100);
+        -webkit-border-radius: 10px;
+        -moz-border-radius: 10px;
+        -ms-border-radius: 10px;
+        -o-border-radius: 10px;
+}
+
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Arial', sans-serif;
+    background-color: rgb(32,32,32);
+    color: #fff;
+    scrollbar-color: rgb(200,200,200) rgba(0,0,0,0);
+    overflow-y: auto;
+}

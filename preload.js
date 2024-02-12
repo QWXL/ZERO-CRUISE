@@ -2,27 +2,44 @@
  * @Author: BuildTools unconfigured@null.spigotmc.org
  * @Date: 2024-01-31 23:44:44
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-01 22:54:36
+ * @LastEditTime: 2024-02-11 23:53:44
  * @FilePath: \cruise-client\preload.js
  */
 
 const { contextBridge, ipcRenderer } = require('electron/renderer')
 
 contextBridge.exposeInMainWorld('api', {
+  newMessage: (messageObject) => ipcRenderer.send('newMessage', messageObject),
+  onWindowShow: (callback) => ipcRenderer.on('windowShow', (_event, value) => callback(value)),
+  beforeQuit: (callback) => ipcRenderer.on('before-quit', (_event, value) => callback(value)),
+  setData: (dataJson) => ipcRenderer.send('setData', dataJson),
+  openWebsite: () => ipcRenderer.send('openWebsite'),
+  closeProcess: () => ipcRenderer.send('closeProcess'),
+  openGithub: () => ipcRenderer.send('openGithub'),
+  clientKey: () => ipcRenderer.invoke('systemInfo'),
+  getSavesData: () => ipcRenderer.invoke('getSavesData'),
+  startDrag: (fileName) => ipcRenderer.send('ondragstart', fileName),
+  saveFile: (fileName,fileData,oldName,noDelOld) => ipcRenderer.send('saveFile', fileName,fileData,oldName,noDelOld),
+  delSaveFile: (fileName) => ipcRenderer.send('delSaveFile', fileName),
+  editSaveTitle: (opid,newTitle) => ipcRenderer.send('editSaveTitle',opid,newTitle),
+  prompt: (title, content) => {return ipcRenderer.sendSync('window-prompt', title, content)}
 })
-
-window.addEventListener('DOMContentLoaded', () => {
-    const replaceText = (selector, text) => {
-      const element = document.getElementById(selector)
-      if (element) element.innerText = text
+ipcRenderer.on('localData', (_event, localData) => {
+  console.log(localData)
+  if (localData?.id) {
+  console.log(JSON.stringify(localData,null,2))
+  const dataKeys = Object.keys(localData)
+  for (i=0;i<dataKeys.length;i++) {
+    console.log(dataKeys[i])
+    console.log(localData[dataKeys[i]])
+    if (localData[dataKeys[i]]) {
+      console.log('√')
+    localStorage.setItem(dataKeys[i],localData[dataKeys[i]])
+    } else {
+      console.log('×')
+      localStorage.removeItem(dataKeys[i])
     }
-  
-    for (const dependency of ['chrome', 'node', 'electron']) {
-      replaceText(`${dependency}-version`, process.versions[dependency])
-    }
-
-
-  
-  })
-
-
+  }
+  console.log(JSON.stringify(localStorage,null,2))
+  }
+})

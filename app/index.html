@@ -1,35 +1,51 @@
-
+<!--
+ * @Author: 秋晚夕落 qwxl@zero-ai.online
+ * @Date: 2024-02-01 21:22:51
+ * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
+ * @LastEditTime: 2024-02-12 02:37:35
+ * @FilePath: \cruise-client\app\index.html
+-->
+<html>
 <title>ZERO ONLINE</title>
 <head>
     <meta charset="UTF-8">
 	<link rel="stylesheet" href="css.css">
     <link rel="stylesheet" href="iconfont.css">
     <link rel="preload" as="style" onload="this.rel='stylesheet'" href="./lib/prism.css">
-    <link rel="prefetch" href="https://zero-ai.online/" as="document">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <link rel="icon" href="./favicon.ico">
   </head>
 <body id="body">
 
-    <script type="module">
+    <script>
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
     </script>
 
 <div id="readyOnLoad" class="readyOnLoad"> 
-  <img src="./AKETA SPACE-Fixed.webp" class="readyOnLoadImg" width="25%">
-  <div style="position:absolute;top:66%;width: 100%;">
-    <div id="loading" class="loading">
-    <img id="point1-load" src="point.png">
-    <img id="point2-load" src="point.png">
-    <img id="point3-load" src="point.png">
-    </div>
-  </div>
+  <a href="#" class="openlogo readyOnLoadImg" id="readyOnLoadAnimation"></a>
+  <a href="#" class="openlogoBackground readyOnLoadImg"></a>
   <p class="readyOnLoadLabel" id="loadLabel">正在加载</p>
+</div>
+<p id="HeaderTime" class="HeaderTime HeaderTimeHover">
+  时间
+  </p>
+
+  <div id="more-container" class="more-container">
+    <button class="more-button" id="more-button" onclick="toggleSelectMenu()" title="More Setting"><span class="iconfont icon-gengduo-xian more-icon" id="more-icon"></span></button>
+  </div>
+<div id="mainScreen"> 
+
+<div class="dropScreen" id="dropScreen" style="display: none;">
+    <span class="iconfont icon-copy coloredText"><br><span class="coloredText" id="dropLabel">松开鼠标以导入.zero文件</span></span>
 </div>
 
 <div id="main">
-  <p id="HeaderTime" class="HeaderTime HeaderTimeHover">
-  时间
-  </p>
+
+  <span style="text-align: center;padding: 3px;width: 100%;height: 1rem;display: block;font-size: 0.9rem;opacity: 0.7;margin-top: 0.2rem;margin-bottom: 0.2rem; ">ZERO CRUISE</span>
 <div class="chat" id="chat"></div>
 </div>
 <div class="input-container" id="input-container">
@@ -39,18 +55,16 @@
     <button class="input-button" id="input-button" onclick="onclickButton()"><span class="iconfont icon-send"></span>
     </button>
   </div>
-  <p class="named" id="named"><span id="named-name"></span> Version Release 1.2 | <span id="netStauts">正在链接</span>
+  <p class="named" id="named"><span id="named-name"></span> Version Cruise 1.0 | <a onclick=" relinkIO()" id="netStauts" title="点击重新连接">正在链接</a>
     <br><a href="https://docs.qq.com/form/page/DWVVReWhiempoUXZq" class="named" id="feedback">问题反馈</a>
     <span id="download-apk"> <a href="./aketa.zeroai.apk" download="ZeroAI.apk" class="named" >下载Android手机端</a></span></p></div>
     
 
-<div id="more-container" class="more-container">
-  <button class="more-button" id="more-button" onclick="toggleSelectMenu()" title="MORE"><span class="iconfont icon-gengduo-xian more-icon" id="more-icon"></span></button>
-</div>
+
 
 <div class="setAPI-container" id="setAPI" style="display: none;">
-  <button class="setAPI-closeBtn" onclick="toggleFreeAPIMenu()" title="关闭"><span class="iconfont icon-guanbi more-icon" id="more-icon"></span></button>
-  <p class="setAPI-warn">高级功能，对此功能的效果，本开发团队不做任何保证。</p>
+  <h1 style="position: absolute;left:1rem;top: 0.75rem;">自由接口</h1>
+  <button class="code-closeBtn" onclick="toggleFreeAPIMenu()" title="关闭"><span class="iconfont icon-guanbi more-icon"></span></button>
   <table class="setAPI-input">
 <tr>
     <th><p class="setAPI-label">Root Adress</p></th><th><input type="text" placeholder="在此键入你的API URL（终结点）。" value="https://api.openai.com/v1/chat/completions" id="adressInput"></th>
@@ -67,13 +81,16 @@
 <tr>
   <th><button class="setAPI-applyToggle setAPI-btn" onclick="applyToggleFreeAPI()">启用/停用</button></th><th>  <button class="setAPI-save setAPI-btn" onclick="saveFreeAPIConfig()">保存</button>  </th>
 </tr>
+<tr>
+  <th colspan="2" style="text-align: left;">高级功能，对此功能的效果，本开发团队不做任何保证。</th>
+</tr>
   </table>
   <div>
 </div>
 </div>
 
 <div class="code-container" id="giftCode" style="display: none;">
-  <h1 style="margin-left: 2%;margin-top: 1%;">填写兑换码</h1>
+  <h1 style="position: absolute;left:1rem;top: 0.75rem;">填写兑换码</h1>
   <button class="code-closeBtn" onclick="toggleCodeMenu()" title="关闭"><span class="iconfont icon-guanbi more-icon"></span></button>
   <input type="text" placeholder="在此处键入你的兑换码" id="code-input" minlength="16" maxlength="16">
   <p id="codeStatus" class="code-status"></p>
@@ -81,10 +98,9 @@
 </div>
 
 <div class="prompt-container" id="customPrompt" style="display: none;">
-  <h1 style="margin-left: 2%;margin-top: 1%;">设置自定义Prompt</h1>
+  <h1 style="position: absolute;left:1rem;top: 0.75rem;">自定义PROMPT</h1>
   <button class="code-closeBtn" onclick="togglePromptMenu()" title="关闭"><span class="iconfont icon-guanbi more-icon"></span></button>
-  <span style="margin-left: 2%;">在下方键入你的自定义Prompt，留空则使用系统默认Prompt。</span>
-  <textarea placeholder="在此键入自定义Prompt" id="prompt-input" autocomplete="off" warp="hard"></textarea>
+  <textarea placeholder="在此处键入你的自定义Prompt，留空则使用系统默认Prompt。" id="prompt-input" autocomplete="off" warp="hard"></textarea>
   <button class="prompt-btn" onclick="setPrompt()"><span class="iconfont icon-gou more-icon"></span></button>
 </div>
 
@@ -101,7 +117,7 @@
 
     </th>
     <th>
-      <div class="plus-switch">
+      <div class="plus-switch switch-shadow">
         <input type="checkbox" id="plusModeSwitch" name="plusMode" disabled>
         <label for="plusModeSwitch"></label>
       </div>
@@ -113,9 +129,32 @@
 
     </th>
     <th>
-      <div class="plus-switch">
+      <div class="plus-switch switch-shadow">
         <input type="checkbox" id="thinkModeSwitch" name="thinkMode" disabled>
         <label for="thinkModeSwitch"></label>
+      </div>
+    </th>
+  </tr>
+  <tr>
+    <th>
+      <div class="th-label coloredText">巡航模式</div>
+
+    </th>
+    <th>
+      <div class="plus-switch coloredSwitch switch-shadow">
+        <input type="checkbox" id="cruiseModeSwitch" name="thinkMode" disabled>
+        <label for="cruiseModeSwitch" id="cruiseModeSwitchLabel"></label>
+      </div>
+    </th>
+  </tr>
+  <tr>
+    <th>
+      <div class="th-label">退出时保存</div>
+    </th>
+    <th>
+      <div class="normal-switch switch-shadow">
+        <input type="checkbox" id="leftSaveModeSwitch" name="leftSaveMode">
+        <label for="leftSaveModeSwitch"></label>
       </div>
     </th>
   </tr>
@@ -125,14 +164,6 @@
     </th>
     <th>
       <button class="small-button" style="background-color: rgb(246, 255, 0);" id="promptButton" onclick="togglePromptMenu();toggleSelectMenu()" disabled><span class="iconfont icon-edit btn-icon" id="" style="color: gray;"></span></button>
-    </th>
-  </tr>
-  <tr>
-    <th>
-      <div class="th-label">重置聊天会话</div>
-    </th>
-    <th>
-      <button class="small-button" id="" onclick="refreshScreen();toggleSelectMenu()" style="background-color: darkred;"><span class="iconfont icon-ic_Refresh btn-icon" id=""></span></button>
     </th>
   </tr>
   <tr>
@@ -190,23 +221,72 @@
   <tr>
     <th colspan="2"><hr></th>
   </tr>
+  <tr>
+    <th colspan="2">
+      <p class="th-label" id="oneText" style="opacity: 0.7;font-weight: lighter;word-wrap:break-word;width: 25vw;">欢迎使用巡航客户端！<br>这里仍在加载中……</p>
+    </th>
+  </tr>
   <tfoot>
   <tr>
     <th colspan="2">
-      <button class="small-button" style="width: 80%;margin-left: 10%;margin-bottom: 8px;border-radius: 6px;" id="backToIndex" onclick="window.location.replace(`https:\/\/www.zero-ai.online`);readyOnLoad.style.display == 'block';showLoadLabel('正在加载')">返回首页 <span class="iconfont icon-back btn-icon" id=""></span></button>
+      <button class="small-button" style="width: 80%;margin-left: 10%;margin-bottom: 8px;border-radius: 6px;padding: 0.3rem;" id="backToIndex" onclick="window.api.openWebsite();">访问官网 <span class="iconfont icon-shouye-home btn-icon" id=""></span></button>
     </th>
   </tr>
   </tfoot>
   </table>
+  <button class="clear-button stopProcessBtn" onclick="window.api.closeProcess()"><span class="iconfont icon-tuichu btn-icon stopProcessBtn"  id=""></span></button>
+  <span class="stopProcessLabel">退出 ZERO-CRUISE</span>
+  <button class="clear-button openGithubBtn" onclick="window.api.openGithub()"><span class="iconfont icon-GitHub btn-icon openGithubBtn" id=""></span></button>
 </div>
 
 <input type="file" id="chatInput" accept=".zero" onchange="inputChat();toggleSelectMenu()" style="display: none"> <!-- file input -->
 
 
-<div class="actaSpace" id="actaLogo">
-  <img src="./AKETA SPACE-Fixed.webp" width="25%" style="margin: 0 37.5%;">
-  <span style="margin-bottom:20px;">Cruise ONLINE<br>与你同行，定义解惑，设置灵感</span>
+
+
+<img src="./AKETA SPACE-Fixed.webp" class="actaSpace" id="actaLogo"/>
+
 </div>
+
+
+<div id="saves-container" class="saves-container">
+  <table class="saves-table" rule="none">
+    <colgroup>
+      <col>
+    </colgroup>
+    <tbody id="saves-table">
+    <tr>
+      <th style="display: grid; grid-template-columns: 1fr 1fr 1fr;"  class="bubble">
+        <button class="small-button" id="createBtn" onclick="addSaveFile()" title="创建一个新会话，并自动保存当前会话" disabled><span class="iconfont icon-add btn-icon"></span></button>
+        <button class="small-button" id="saveBtn" onclick="saveFile()" title="保存当前会话" disabled><span class="iconfont icon-save btn-icon"></span></button>
+        <button class="small-button" id="" onclick="refreshScreen(false,true)" title="刷新当前会话，但不会自动保存"><span class="iconfont icon-ic_Refresh btn-icon"></span></button>
+      </th>
+    </tr>
+    <tr>
+      <th style="margin: 0 auto;">
+        <hr class="nowContent">
+      </th>
+    </tr>
+    <tr>
+      <th class="bubble save" id="saveNow" style="margin-top: 0;display: grid; grid-template-columns: 8fr 2fr;" draggable="true">
+        <p id="nowTitle">新会话</p>
+        <button class="clear-button" id="showUGBtn" onclick="editSaveTitle('saveNow')" title="修改标题" style="display: none;"><span class="iconfont icon-a-bianji-edit1 btn-icon"></span></button>
+      </th>
+    </tr>
+    <tr id="histroyLine">
+      <th style="margin: 0 auto;">
+        <hr>
+      </th>
+    </tr>
+    <tr>
+      <th style="text-align: center;opacity: 0.7;">当前有 <span id="histroyCount">0</span> 个存档</th>
+    </tr>
+    </tbody>
+  </table>
+  </div>
+
+
+
 
 <script src="./lib/prism.js"></script>
 <script src="./lib/marked.min.js"></script>
@@ -219,4 +299,6 @@
 <script src="./js/mobileApk.js"></script> <!-- app校验 -->
 </body>
 
+
+</html>
 

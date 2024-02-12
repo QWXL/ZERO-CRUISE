@@ -2,7 +2,7 @@
  * @Author: 秋晚夕落 qwxl@zero-ai.online
  * @Date: 2024-01-28 17:52:48
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-01 17:10:42
+ * @LastEditTime: 2024-02-06 00:49:41
  * @FilePath: \server-side\public\js\mobileApk.js
  */
 const download = document.getElementById('download-apk')
@@ -12,16 +12,9 @@ const urlString = window.location.href;
 const urlObj = new URL(urlString);
 
 const feedback = document.getElementById('feedback');
-const backToIndex = document.getElementById('backToIndex');
-const inOuts = document.getElementsByClassName('output-inputChat');
 if (app && download && mobile) {
-    console.log(inOuts)
     download.remove()
     feedback.remove()
-    backToIndex.remove()
-    inOuts[2].remove()
-    inOuts[1].remove()
-    inOuts[0].remove()
 } else {
     document.getElementById('named-name').textContent = `Powered By QWXL |`
     download.innerHTML = ` | ${download.innerHTML}`

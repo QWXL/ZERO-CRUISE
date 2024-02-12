@@ -1,13 +1,11 @@
-const plusModeSwitch = document.getElementById('plusModeSwitch');
-const thinkModeSwitch = document.getElementById('thinkModeSwitch');
-const PromptMenu = document.getElementById('customPrompt');
-const PromptInput = document.getElementById('prompt-input');
-const logo = document.getElementById('actaLogo')
 
+let cruiseMode = boolean[localStorage.getItem('cruiseMode') || 'false']
 let plus = boolean[localStorage.getItem('plus') || 'false']
 let think = boolean[localStorage.getItem('think') || 'false']
+let saveWhenLeft = boolean[localStorage.getItem('saveWhenLeft') || 'false']
 thinkModeSwitch.checked = boolean[localStorage.getItem('think') || 'false']
-
+cruiseModeSwitch.checked = boolean[localStorage.getItem('cruiseMode') || 'false']
+leftSaveModeSwitch.checked = boolean[localStorage.getItem('saveWhenLeft') || 'false']
   // 设置 Plus 模式开关状态的函数
 /**
  * 函数“setPlusModeSwitch”根据“isEnabled”的值启用或禁用开关，并相应地更新徽标和令牌计数。
@@ -17,11 +15,13 @@ thinkModeSwitch.checked = boolean[localStorage.getItem('think') || 'false']
   function setPlusModeSwitch(isEnabled) {
     // 如果 isEnabled 为 true，则设置为可选择
     plusModeSwitch.disabled = !isEnabled;
+    cruiseModeSwitch.disabled = !isEnabled
     if (isEnabled && plus) {
     plusModeSwitch.checked = true;
     } else {
       plusModeSwitch.checked = false
     }
+
     if (plusModeSwitch.checked) {
       logo.src = './AKETA SPACE GOLD.webp'
       maxTokens = 128000
@@ -29,7 +29,7 @@ thinkModeSwitch.checked = boolean[localStorage.getItem('think') || 'false']
       maxTokens = 16385
       logo.src = './AKETA SPACE-Fixed.webp'
     }
-    tokens.textContent = `Tokens:0/${maxTokens}（来自OpenAI的限制）`  
+    tokens.textContent = `Tokens:0/${maxTokens}`  
   }
   
   thinkModeSwitch.addEventListener("change",(event) => {
@@ -38,8 +38,22 @@ thinkModeSwitch.checked = boolean[localStorage.getItem('think') || 'false']
       think = thinkModeSwitch.checked
       localStorage.setItem('think',think)
     }
+    
   })
 
+  cruiseModeSwitch.addEventListener("change", async (event) => {
+    if (cruiseModeSwitch.checked !== cruiseMode) {
+      cruiseMode = cruiseModeSwitch.checked;
+      localStorage.setItem('cruiseMode',cruiseModeSwitch.checked);
+      cruiseModeSwitch.disabled = true;
+      cruiseModeSwitchLabel.style.cursor = 'wait';
+      console.log(`设置巡航模式:${cruiseModeSwitch.checked}`);
+      relinkIO()
+
+
+    }
+    
+  })
 /**
  * 函数“testPlusMode”用于处理切换加模式开关时的逻辑和行为。
  */
@@ -51,14 +65,17 @@ thinkModeSwitch.checked = boolean[localStorage.getItem('think') || 'false']
     if (plusModeSwitch.checked == false) {
     thinkModeSwitch.checked = false
     thinkModeSwitch.disabled = true
+
   }
   if (plusModeSwitch.checked == true) {
     thinkModeSwitch.disabled = false
   }
   localStorage.setItem('plus',plusModeSwitch.checked)
   localStorage.setItem("think",thinkModeSwitch.checked)
+  localStorage.setItem("cruiseMode",cruiseModeSwitch.checked)
   plus = plusModeSwitch.checked
   think = thinkModeSwitch.checked
+  cruiseMode = cruiseModeSwitch.checked
   if (plus) {
     logo.src = './AKETA SPACE GOLD.webp'
     maxTokens = 128000
@@ -66,12 +83,16 @@ thinkModeSwitch.checked = boolean[localStorage.getItem('think') || 'false']
     logo.src = './AKETA SPACE-Fixed.webp'
     maxTokens = 16385
   }
-  tokens.textContent = `Tokens:0/${maxTokens}（来自OpenAI的限制）`
+  tokens.textContent = `Tokens:0/${maxTokens}`
   }
 
   plusModeSwitch.addEventListener("change", (event) => {
     testPlusMode()
   });
+
+  leftSaveModeSwitch.addEventListener("change", (event) => {
+    ToggleleftSaveMode()
+  })
 
   const selectContainer = document.getElementById('select-container')
   const moreButton = document.getElementById('more-icon')
@@ -82,33 +103,40 @@ function toggleSelectMenu() {
 
     if (selectContainer.style.display == 'block') {
       selectContainer.style.animation = 'closeSelectMenu 0.1s ease-in-out'
+      selectContainer.style.right = '-20%'
       setTimeout(() => {
           selectContainer.style.animation = ''
           selectContainer.style.display = 'none'
       }, 100);
         moreButton.classList.add('icon-gengduo-xian')
-        moreButton.classList.remove('icon-guanbi')
+        moreButton.classList.remove('icon-back')
+        moreButton.title = `More Setting`
     } else {
 
           selectContainer.style.display = 'block'
+          selectContainer.style.right = '0'
           selectContainer.style.animation = 'toggleSelectMenu 0.1s ease-in-out'
           setTimeout(() => {
               selectContainer.style.animation = ''
           }, 100);
         moreButton.classList.remove('icon-gengduo-xian')
-        moreButton.classList.add('icon-guanbi')
+        moreButton.classList.add('icon-back')
+        moreButton.title = `Back To Main`
     }
 }
 
 
 
-const inputContainer = document.getElementById('input-container')
 main.addEventListener("click", function(event) {
   closeWhenClickOther()
 });
 inputContainer.addEventListener("click", function(event) {
   closeWhenClickOther()
 });
+Logo.addEventListener("click", function(event) {
+  closeWhenClickOther()
+});
+
 function closeWhenClickOther() {
   if (selectContainer.style.display == 'block') {
     toggleSelectMenu()
@@ -160,7 +188,7 @@ function GiftCode() {
       const status = document.getElementById('codeStatus')
       status.textContent = `请稍后，正在核对你的兑换码`
       status.style.backgroundColor = `black`
-    axios.get(`/code?id=${localStorage.getItem('id')}&code=${code}`)
+    axios.get(`https://chat.zero-ai.online/code?id=${localStorage.getItem('id')}&code=${code}`)
     .then((res) => {
       chatContainer.removeChild(temp)
       const result = res.data;
@@ -172,7 +200,7 @@ function GiftCode() {
         status.textContent = ``
         status.backgroundColor = ``
         toggleCodeMenu()
-        getACCESS()
+        getACCESS('giftCode',true)
       } else {
         createChatBubble(getTime(),'system',`${result.content}`)
       }
@@ -211,4 +239,9 @@ function setPrompt() {
   const input = PromptInput.value
   localStorage.setItem('customPrompt',input)
   window.location.reload()
+}
+
+
+function ToggleleftSaveMode() {
+  localStorage.setItem('saveWhenLeft',leftSaveModeSwitch.checked)
 }
