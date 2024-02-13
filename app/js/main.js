@@ -242,10 +242,11 @@ let token = 0
 let tempBubble
 /**
  * inputByUser 函数用于处理聊天界面中的用户输入，将其发送到服务器进行处理，并将临时响应显示在聊天界面中。
- * @param message - “message”参数是用户提供的输入消息。它是一个表示用户消息或查询的字符串。
+ * @param {string} message - “message”参数是用户提供的输入消息。它是一个表示用户消息或查询的字符串。
+ * @param {boolean} audio - “audio”参数指示这条消息是否由 Sound 2 Text 程序填充
  * @returns 该函数没有 return 语句，因此它不会显式返回任何内容。
  */
-function inputByUser(message) {
+function inputByUser(message,audio) {
     const mid = createCode()
     if (message) {
     chatLog.push({"role":"user","content":`${message}`})
@@ -305,7 +306,8 @@ function inputByUser(message) {
             customPrompt: customPrompt,
             app: app,
             mid: mid,
-            cruise:true
+            cruise:true,
+            audio: audio
         },
         timeout: 36000000, 
         headers: {
@@ -553,14 +555,15 @@ function toggleHide(time) {
 
 /**
  * `createChatBubble` 函数创建一个具有指定时间、发送者、内容、标签和元素 ID 的聊天气泡元素。
- * @param time - 创建聊天气泡的时间。
- * @param who - “who”参数代表聊天气泡的发送者。它可以是“用户”或“助理”。
- * @param content - `content` 参数代表聊天气泡的消息内容。它可以是包含气泡的文本消息或 HTML 内容的字符串。
- * @param tag - `tag` 参数用于指定聊天气泡的类型。它可以具有三个可能的值：“plus”、“custom”或“normal”。这些值确定聊天气泡的样式，并用于在助理消息旁边显示标签。
- * @param eid - `eid` 参数是一个可选参数，表示聊天气泡的 ID。它用于唯一标识每个聊天气泡元素。如果提供，聊天气泡元素将具有指定的 ID。
+ * @param {string} time - 创建聊天气泡的时间。
+ * @param {string} who - “who”参数代表聊天气泡的发送者。它可以是“用户”或“助理”。
+ * @param {string} content - `content` 参数代表聊天气泡的消息内容。它可以是包含气泡的文本消息或 HTML 内容的字符串。
+ * @param {string} tag - `tag` 参数用于指定聊天气泡的类型。它可以具有三个可能的值：“plus”、“custom”或“normal”。这些值确定聊天气泡的样式，并用于在助理消息旁边显示标签。
+ * @param {string} eid - `eid` 参数是一个可选参数，表示聊天气泡的 ID。它用于唯一标识每个聊天气泡元素。如果提供，聊天气泡元素将具有指定的 ID。
+ * @param {boolean} security - `security`参数是一个可选参数，表示是否使用较为保守的创建机制
  * @returns 函数“createChatBubble”返回创建并附加到“chatContainer”的“chatBubble”元素。
  */
-function createChatBubble(time,who,content,tag,eid,chatIndex) { 
+function createChatBubble(time,who,content,tag,eid,chatIndex,security) { 
     console.log(who)
     chatCount += 1
     console.log(content)
@@ -614,7 +617,8 @@ function createChatBubble(time,who,content,tag,eid,chatIndex) {
     }
     chatBubble.appendChild(chatBubbleMessage)
     if (who == 'user') {
-        chatBubbleMessage.textContent = message
+        if (security) chatBubbleMessage.textContent = message
+        else chatBubbleMessage.innerHTML = message
         const chatEditContainer = document.createElement('button')
         chatEditContainer.classList.add('chatEdit')
         chatEditContainer.title = `编辑`
@@ -633,9 +637,9 @@ function createChatBubble(time,who,content,tag,eid,chatIndex) {
         chatBubbleMessage.textContent = ''
         chatBubbleMessage.innerHTML = ''
     }
-    let height = Number(body.style.height.replaceAll('px','')) + chatBubble.clientHeight * 2
+    let height = window.innerHeight + Number(chatContainer.style.height.replaceAll('px','')) + chatBubble.clientHeight * 2
     console.log(height)
-    body.style.height = `${height}px`
+    chatContainer.style.height = `${height}px`
     Logo.style.display = 'none'
     const preLagElements = chatBubbleMessage.getElementsByClassName(`preLeg${randomId}`)
     if (preLagElements) {
@@ -1346,7 +1350,7 @@ async function inputChat(fileData) {
         }
         chatContainer.innerHTML += jsonContent.data.element
         token = jsonContent.data.tokens
-        body.style.height = jsonContent.data.height
+        chatContainer.style.height = jsonContent.data.height
         document.getElementById('saveNow').setAttribute('readSaves','true')
     } catch (error) {
         createChatBubble(getTime(),'error',`你提交的会话记录读取失败！错误：${error}`)
@@ -1631,10 +1635,10 @@ function delSaveFile(opid) {
 function editSaveTitle(opid) {
     if (opid !== 'saveNow') {
     const ele = document.getElementById(`output-${opid}`).firstElementChild
-    const newTitle = window.api.prompt(`在此输入这个存档的备注（≤10字）`,ele.textContent)
+    const newTitle = window.api.prompt(`在此输入这个存档的备注（≤20字）`,ele.textContent)
     if (newTitle) {
-        ele.textContent = newTitle.slice(0,10)
-        window.api.editSaveTitle(opid,newTitle.slice(0,10))
+        ele.textContent = newTitle
+        window.api.editSaveTitle(opid,newTitle)
     }
 } else {
     const pele = document.getElementById('saveNow')
@@ -1649,3 +1653,104 @@ function editSaveTitle(opid) {
 
 }
 }
+
+
+const sttDevice = document.getElementById('sttDevice') // left
+const sttType = document.getElementById('sttType') // center
+const sttInfo = document.getElementById('sttInfo') // right
+let sttStat = false // 一个简单的全局变量，用于指示stt是否可用
+let useStt = false // 同上，用于指示stt是否在工作状态（包括聆听时）
+window.api.sttProcess((object) => {
+  console.log(object)
+    switch (object.type) {
+        case "device":
+            sttDevice.textContent = object.content
+            break;
+        case "connection":
+            if (object.content) {
+            sttInfo.textContent = `连接成功`
+            sttType.textContent = `闲置中...按住Tab键发起语音输入`
+            sttStat = true
+            } else {
+                sttInfo.textContent = `链接丢失`
+                sttInfo.style.color = `red`
+            }
+            break;
+        case "error":
+            createChatBubble(getTime(),'error',`来自语音输入模块的报错：${object.content}`)
+            break;
+        case "failed":
+            createChatBubble(getTime(),'error',`语音输入模块已崩溃：code ${object.content}`)
+            sttInfo.textContent = `模块崩溃`
+            sttInfo.style.color = `red`
+            sttStat = false
+            useStt = false
+            break;
+        case "result":
+            inputByUser(object.content,true)
+            canSend = true
+            input.classList.remove('cantSend');
+            inputButton.classList.remove('cantSend');
+            tempSttBubble?.remove()
+            sttType.textContent = `闲置中...按住Tab发起语音输入`
+            useStt = false
+            break
+        default:
+            break;
+    }
+})
+
+let tempSttBubble
+function startSound2Text() {
+    if (sttStat && canSend && !useStt) {
+    canSend = false
+    input.classList.add('cantSend');
+    inputButton.classList.add('cantSend');
+    input.blur()
+    window.api.startStt()
+    useStt = true
+    sttType.textContent = `聆听中...释放开始处理`
+    tempSttBubble = createChatBubble('正在聆听...','user',"<img src='./loading-user.gif' class='tempBubble'>",null,null,null,false)
+}
+}
+
+function stopSound2Text() {
+    if (sttStat && !canSend && useStt) {
+        input.blur()
+        window.api.stopStt()
+        sttType.textContent = `处理中...请稍后`
+    }
+}
+let tabPressTimer;
+
+
+// 监听 Tab 键的按下
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      // 防止默认行为，比如移动到下一个元素
+      tabPressTimer = setTimeout(function() {
+        console.log('触发聆听');
+        startSound2Text()
+    
+      }, 300); // 300毫秒判定为长按
+    }
+  });
+  
+  // 监听 Tab 键的释放
+document.addEventListener('keyup', function(event) {
+    if (event.key === 'Tab') {
+      // 这里可以执行一些操作，例如自定义焦点管理等。
+      stopSound2Text()
+      clearTimeout(tabPressTimer);
+    }
+  });
+
+document.addEventListener('keypress', function(event) {
+    const focusedElement = document.activeElement;
+    const inputfocused = focusedElement.id == `input`
+    if (event.code === 'Space' && !useStt && !inputfocused) {
+        event.preventDefault()
+        input.focus()
+    }
+})

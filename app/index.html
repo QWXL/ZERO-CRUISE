@@ -2,7 +2,7 @@
  * @Author: 秋晚夕落 qwxl@zero-ai.online
  * @Date: 2024-02-01 21:22:51
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-12 02:37:35
+ * @LastEditTime: 2024-02-13 23:47:01
  * @FilePath: \cruise-client\app\index.html
 -->
 <html>
@@ -42,7 +42,7 @@ function sleep(ms) {
 <div class="dropScreen" id="dropScreen" style="display: none;">
     <span class="iconfont icon-copy coloredText"><br><span class="coloredText" id="dropLabel">松开鼠标以导入.zero文件</span></span>
 </div>
-
+<span class="sttProcessInfo" id="sttProcessInfo"><span id="sttDevice">正在加载...</span>　|　<span id="sttType">正在加载...</span>　|　<span id="sttInfo">正在加载...</span></span>
 <div id="main">
 
   <span style="text-align: center;padding: 3px;width: 100%;height: 1rem;display: block;font-size: 0.9rem;opacity: 0.7;margin-top: 0.2rem;margin-bottom: 0.2rem; ">ZERO CRUISE</span>
@@ -275,7 +275,7 @@ function sleep(ms) {
     </tr>
     <tr id="histroyLine">
       <th style="margin: 0 auto;">
-        <hr>
+        <hr class="otherSaves">
       </th>
     </tr>
     <tr>

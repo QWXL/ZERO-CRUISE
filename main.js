@@ -2,17 +2,23 @@
  * @Author: QWXL@zero-ai.online
  * @Date: 2024-01-31 23:36:03
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-12 19:34:52
+ * @LastEditTime: 2024-02-13 22:30:00
  * @FilePath: \cruise-client\main.js
  */
 const electron = require('electron');
 const { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage, Notification, ipcMain, safeStorage, process, screen, shell, dialog  } = electron
+const processNode = require('node:process');
 const path = require('path');
 const fs = require('fs/promises')
 const prompt = require('electron-prompt');
 const os = require('os');
 const Store = require('electron-store');
+const portscanner = require('portscanner');
+const { spawn , exec} = require('child_process');
 const savesPath = path.join(app.getPath('userData'),"saves")
+const axios = require('axios')
+const express = require("express");
+const appserver = express();
 const store = new Store({
   name: 'data' // 更改存储文件名，默认是'config'
 });
@@ -93,16 +99,17 @@ const createMainWindow = () => {
 
   app.whenReady().then(async () => {
     let win = createMainWindow()
-
+    win.webContents.openDevTools()
     win.on('blur', () => {
       win.hide();
     })
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) win = createMainWindow()
     })
-    win.removeMenu()
+    if (app.isPackaged) {
+    win.removeMenu() // 这两行是阻止Ctrl+R刷新的
     Menu.setApplicationMenu(Menu.buildFromTemplate([]))
-
+    }
     win.webContents.session.webRequest.onHeadersReceived((details, callback) => { // 处理跨域问题
       callback({
         responseHeaders: {
@@ -306,8 +313,8 @@ const createMainWindow = () => {
           type: 'input',
           inputAttrs: {
           type: 'text',
-          maxlength: 10,
-          placeholder: "10个字符以内"
+          maxlength: 20,
+          placeholder: "20个字符以内"
           },
           useHtmlLabel: true,
           icon: path.join(__dirname, 'whiteIcon.png'),  // 图标
@@ -324,7 +331,6 @@ const createMainWindow = () => {
       });
   });
 }
-  })
 
 
   app.on('window-all-closed', () => {
@@ -339,6 +345,12 @@ const createMainWindow = () => {
       // 将这些值存储到store中
       store.set('windowPosition', { x, y });
       console.log('bye!')
+      const pid = sttProcess?.pid;
+      if (pid) {
+      processNode?.kill(pid);
+      }
+      sttProcess?.kill();
+      exec(path.join(__dirname,'killSttProcess.cmd'))
   })
 
 
@@ -354,15 +366,6 @@ const createMainWindow = () => {
     }
   }
 
-
-  function generateRandomString(length) {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let randomString = '';
-    for (let i = 0; i < length; i++) {
-        randomString += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
-    return randomString;
-}
 
 
 
@@ -409,8 +412,201 @@ async function readAndSortTitlesByIds() {
   }
 }
 
+var iconv = require('iconv-lite');
+var encoding = 'cp936';
+let sttProcess
+  if (await checkPortAvailable(6301)) {
+    // 启动语音服务
+    sttProcess = spawn(path.join(__dirname,'stt_process.exe'), {
+      shell: true, // 在Windows环境运行
+      windowsHide: false,
+      cwd: __dirname,
+      stdio: 'pipe',
+      encoding: 'buffer'
+      });
 
+    sttProcess.stdout.on('data', (data) => {
+      const line = iconv.decode(data, encoding)
+      if (line.includes('[device]')) {        
+        const index = line.lastIndexOf("[device]")
+        const device = line.substring(index, line.length).replace('[device]','')
+        win.webContents.send('sttProcess',{type:"device",content:device})
+      }
+      if (line.includes('[connectionDone]')) {
+        win.webContents.send('sttProcess',{type:"connection",content:true})
+      }
+      if (line.includes('[error]')) {
+        win.webContents.send('sttProcess',{type:"error",content:`出现未知异常！`})
+      }
+      if (line.includes('[connectionError]')) {
+        win.webContents.send('sttProcess',{type:"connection",content:false})
+      }
+    });
+
+   sttProcess.stderr.on('data', (data) => {
+    console.log(data.toString())
+  });
+
+   sttProcess.on('close', (code) => {
+     console.log(`Child process exited with code ${code}`);
+     win.webContents.send('sttProcess',{type:"failed",content:code})
+   });
+  } else {
+    dialog.showMessageBox(win,{
+      message: `端口6301被占用！请尝试关闭残留程序或重启电脑解决问题。`,
+      title: "ZERO ERROR",
+      type: "error",
+      buttons: ["我知道了"]
+    })
+    app.quit()
+  }
 
 
 
  
+   ipcMain.on('startStt', async (e) => {
+    try {
+      var config = {
+        method: 'post',
+        url: 'http://127.0.0.1:6301/stt/',
+        headers: { 
+           'Content-Type': 'application/json'
+        },
+        data: {
+           "type": "start",
+        },
+     };
+     axios(config)
+      } catch (error) {
+        dialog.showMessageBox(win,{
+          message: `系统出现问题：${error}`,
+          title: "ZERO ERROR",
+          type: "warning",
+          buttons: ["我知道了"]
+        })
+      }
+  })
+
+  ipcMain.on('stopStt', async (e) => {
+    try {
+      var config = {
+        method: 'post',
+        url: 'http://127.0.0.1:6301/stt/',
+        headers: { 
+           'Content-Type': 'application/json'
+        },
+        data: {
+           "type": "stop",
+        },
+     };
+     axios(config)
+        } catch (error) {
+        dialog.showMessageBox(win,{
+          message: `系统出现问题：${error}`,
+          title: "ZERO ERROR",
+          type: "warning",
+          buttons: ["我知道了"]
+        })
+      }
+  })
+
+appserver.post('/stt/', async (req,res) => {
+  console.log(req)
+  const resultValue = unicode2string(req.query.data);
+  console.log(`Reuslt:${resultValue}`)
+  win.webContents.send('sttProcess',{type:"result",content:resultValue})
+  res.send(true)
+})
+
+  if (await checkPortAvailable(6302)) {
+  appserver.listen('6302')
+  } else {
+    dialog.showMessageBox(win,{
+      message: `端口6302被占用！请尝试关闭残留程序或重启电脑解决问题。`,
+      title: "ZERO ERROR",
+      type: "error",
+      buttons: ["我知道了"]
+    })
+    app.quit()
+  }
+
+
+  
+function string2unicode(str){
+  var ret ="";
+  var ustr = "";
+   
+  for(var i=0; i<str.length; i++){
+    
+    var code = str.charCodeAt(i); 
+    var code16 = code.toString(16);
+   
+    if(code < 0xf){
+      ustr = "\\u"+"000"+code16;
+    }else if(code < 0xff){
+      ustr = "\\u"+"00"+code16;
+    }else if(code < 0xfff){
+      ustr = "\\u"+"0"+code16;
+    }else{
+      ustr = "\\u"+code16;
+    }	
+    ret +=ustr;
+    //ret += "\\u" + str.charCodeAt(i).toString(16);	
+  }
+} 
+function unicode2string(unicode){
+    return eval("'" + unicode + "'");
+}
+
+
+/**
+ * 检查指定端口是否可用。
+ *
+ * @param {number} port 要检查的端口号。
+ * @returns {boolean} 是否可用，如果发生错误则为null
+ */
+async function checkPortAvailable(port) {
+  return new Promise((resolve, reject) => {
+    
+    // 默认地址设置为127.0.0.1。根据需要也可以更改或从外部传入。
+    const host = '127.0.0.1';
+
+    // 使用portscanner检测指定端口状态。
+    portscanner.checkPortStatus(port, host, (error, status) => {
+        if (error) {
+          dialog.showMessageBox(win,{
+            message: `系统出现问题：${error}`,
+            title: "ZERO ERROR",
+            type: "warning",
+            buttons: ["我知道了"]
+          })
+            reject(error);
+        }
+
+        // 如果状态为'closed'，则表示该端口未被使用且可用。
+        if (status === "closed") {
+            console.log(`Port ${port} is available.`);
+            resolve(true)
+        } else {
+            console.log(`Port ${port} is in use.`);
+            resolve(false)
+        }
+    });
+  })
+}
+
+
+
+})
+
+
+
+function generateRandomString(length) {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let randomString = '';
+  for (let i = 0; i < length; i++) {
+      randomString += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return randomString;
+}
+
