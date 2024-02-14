@@ -25,12 +25,14 @@ contextBridge.exposeInMainWorld('api', {
   editSaveTitle: (opid,newTitle) => ipcRenderer.send('editSaveTitle',opid,newTitle),
   prompt: (title, content) => {return ipcRenderer.sendSync('window-prompt', title, content)},
   startStt: () => ipcRenderer.send('startStt'),
-  stopStt: () => ipcRenderer.send('stopStt')
+  stopStt: () => ipcRenderer.send('stopStt'),
+  restart: () => ipcRenderer.send('app-restart')
 })
-ipcRenderer.on('localData', (_event, localData) => {
+ipcRenderer.on('localData', (_event, localData, version) => {
   console.log(localData)
   if (localData?.id) {
   console.log(JSON.stringify(localData,null,2))
+  document.getElementById('versionSpan').textContent = version
   const dataKeys = Object.keys(localData)
   for (i=0;i<dataKeys.length;i++) {
     console.log(dataKeys[i])

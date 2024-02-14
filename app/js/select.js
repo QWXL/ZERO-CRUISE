@@ -6,6 +6,7 @@ let saveWhenLeft = boolean[localStorage.getItem('saveWhenLeft') || 'false']
 thinkModeSwitch.checked = boolean[localStorage.getItem('think') || 'false']
 cruiseModeSwitch.checked = boolean[localStorage.getItem('cruiseMode') || 'false']
 leftSaveModeSwitch.checked = boolean[localStorage.getItem('saveWhenLeft') || 'false']
+sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
   // 设置 Plus 模式开关状态的函数
 /**
  * 函数“setPlusModeSwitch”根据“isEnabled”的值启用或禁用开关，并相应地更新徽标和令牌计数。
@@ -72,7 +73,9 @@ leftSaveModeSwitch.checked = boolean[localStorage.getItem('saveWhenLeft') || 'fa
   }
   localStorage.setItem('plus',plusModeSwitch.checked)
   localStorage.setItem("think",thinkModeSwitch.checked)
-  localStorage.setItem("cruiseMode",cruiseModeSwitch.checked)
+  localStorage.setItem("cruiseMode",cruiseModeSwitch.checked)  
+  localStorage.setItem("sttp",sttModeSwitch.checked)
+
   plus = plusModeSwitch.checked
   think = thinkModeSwitch.checked
   cruiseMode = cruiseModeSwitch.checked
@@ -84,14 +87,23 @@ leftSaveModeSwitch.checked = boolean[localStorage.getItem('saveWhenLeft') || 'fa
     maxTokens = 16385
   }
   tokens.textContent = `Tokens:0/${maxTokens}`
-  }
+  } 
 
   plusModeSwitch.addEventListener("change", (event) => {
-    testPlusMode()
+    testPlusMode() 
   });
 
   leftSaveModeSwitch.addEventListener("change", (event) => {
     ToggleleftSaveMode()
+  })
+
+  sttModeSwitch.addEventListener("change", (event) => {
+    localStorage.setItem('sttp',sttModeSwitch.checked)
+    if (!document.getElementById('restartWarning')) {
+    createChatBubble(getTime(),'system',`重启 Cruise 以应用该操作。<br><button class="btnInChat" style="margin-top:20px;padding:10px" id="" onclick="restart()">重启 <span class="iconfont icon-ic_Refresh closeHideBtn"></span></button>`,null,'restartWarning')
+    } else {{
+      chatContainer.appendChild(document.getElementById('restartWarning'))
+    }}
   })
 
   const selectContainer = document.getElementById('select-container')

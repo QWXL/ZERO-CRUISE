@@ -1,5 +1,6 @@
 /out
 /node_modules
+/stt/internal
 *.log
 out/
 stt_process.exe

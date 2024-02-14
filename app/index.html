@@ -2,7 +2,7 @@
  * @Author: 秋晚夕落 qwxl@zero-ai.online
  * @Date: 2024-02-01 21:22:51
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-13 23:47:01
+ * @LastEditTime: 2024-02-14 21:57:53
  * @FilePath: \cruise-client\app\index.html
 -->
 <html>
@@ -42,7 +42,7 @@ function sleep(ms) {
 <div class="dropScreen" id="dropScreen" style="display: none;">
     <span class="iconfont icon-copy coloredText"><br><span class="coloredText" id="dropLabel">松开鼠标以导入.zero文件</span></span>
 </div>
-<span class="sttProcessInfo" id="sttProcessInfo"><span id="sttDevice">正在加载...</span>　|　<span id="sttType">正在加载...</span>　|　<span id="sttInfo">正在加载...</span></span>
+<span class="sttProcessInfo" id="sttProcessInfo"><span id="sttDevice" title="语音输入模块使用的音频输入设备（系统默认设备）">正在加载...</span>　|　<span id="sttType" title="语音输入模块的当前状态">正在加载...</span>　|　<span id="sttInfo" title="语音输入服务器的连接状态">正在加载...</span></span>
 <div id="main">
 
   <span style="text-align: center;padding: 3px;width: 100%;height: 1rem;display: block;font-size: 0.9rem;opacity: 0.7;margin-top: 0.2rem;margin-bottom: 0.2rem; ">ZERO CRUISE</span>
@@ -55,7 +55,7 @@ function sleep(ms) {
     <button class="input-button" id="input-button" onclick="onclickButton()"><span class="iconfont icon-send"></span>
     </button>
   </div>
-  <p class="named" id="named"><span id="named-name"></span> Version Cruise 1.0 | <a onclick=" relinkIO()" id="netStauts" title="点击重新连接">正在链接</a>
+  <p class="named" id="named"><span id="named-name"></span> Version Cruise <span id="versionSpan"></span> | <a onclick=" relinkIO()" id="netStauts" title="点击重新连接">正在链接</a>
     <br><a href="https://docs.qq.com/form/page/DWVVReWhiempoUXZq" class="named" id="feedback">问题反馈</a>
     <span id="download-apk"> <a href="./aketa.zeroai.apk" download="ZeroAI.apk" class="named" >下载Android手机端</a></span></p></div>
     
@@ -155,6 +155,17 @@ function sleep(ms) {
       <div class="normal-switch switch-shadow">
         <input type="checkbox" id="leftSaveModeSwitch" name="leftSaveMode">
         <label for="leftSaveModeSwitch"></label>
+      </div>
+    </th>
+  </tr>
+  <tr>
+    <th>
+      <div class="th-label">语音输入</div>
+    </th>
+    <th>
+      <div class="normal-switch switch-shadow">
+        <input type="checkbox" id="sttModeSwitch" name="sttModeSwitch">
+        <label for="sttModeSwitch"></label>
       </div>
     </th>
   </tr>
@@ -268,7 +279,7 @@ function sleep(ms) {
       </th>
     </tr>
     <tr>
-      <th class="bubble save" id="saveNow" style="margin-top: 0;display: grid; grid-template-columns: 8fr 2fr;" draggable="true">
+      <th class="bubble save nowSave" id="saveNow" style="margin-top: 0;display: grid; grid-template-columns: 8fr 2fr;" draggable="true">
         <p id="nowTitle">新会话</p>
         <button class="clear-button" id="showUGBtn" onclick="editSaveTitle('saveNow')" title="修改标题" style="display: none;"><span class="iconfont icon-a-bianji-edit1 btn-icon"></span></button>
       </th>

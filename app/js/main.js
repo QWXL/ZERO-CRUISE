@@ -34,6 +34,7 @@ const thinkModeSwitch = document.getElementById('thinkModeSwitch');
 const cruiseModeSwitch = document.getElementById('cruiseModeSwitch'); 
 const cruiseModeSwitchLabel = document.getElementById('cruiseModeSwitchLabel'); 
 const leftSaveModeSwitch = document.getElementById('leftSaveModeSwitch'); 
+const sttModeSwitch = document.getElementById('sttModeSwitch'); 
 const PromptMenu = document.getElementById('customPrompt');
 const PromptInput = document.getElementById('prompt-input');
 const logo = document.getElementById('actaLogo')
@@ -1660,6 +1661,7 @@ const sttType = document.getElementById('sttType') // center
 const sttInfo = document.getElementById('sttInfo') // right
 let sttStat = false // 一个简单的全局变量，用于指示stt是否可用
 let useStt = false // 同上，用于指示stt是否在工作状态（包括聆听时）
+if (boolean[localStorage.sttp ?? "true"]) {
 window.api.sttProcess((object) => {
   console.log(object)
     switch (object.type) {
@@ -1729,6 +1731,7 @@ document.addEventListener('keydown', function(event) {
     if (event.key === 'Tab') {
       event.preventDefault();
       // 防止默认行为，比如移动到下一个元素
+      closeWhenClickOther() // 如果有菜单，收起
       tabPressTimer = setTimeout(function() {
         console.log('触发聆听');
         startSound2Text()
@@ -1740,11 +1743,15 @@ document.addEventListener('keydown', function(event) {
   // 监听 Tab 键的释放
 document.addEventListener('keyup', function(event) {
     if (event.key === 'Tab') {
-      // 这里可以执行一些操作，例如自定义焦点管理等。
+      closeWhenClickOther() // 如果有菜单，收起
       stopSound2Text()
       clearTimeout(tabPressTimer);
     }
   });
+
+} else {
+    document.getElementById('sttProcessInfo').textContent = `|　语音输入模块已关闭　|`
+}
 
 document.addEventListener('keypress', function(event) {
     const focusedElement = document.activeElement;
@@ -1752,5 +1759,10 @@ document.addEventListener('keypress', function(event) {
     if (event.code === 'Space' && !useStt && !inputfocused) {
         event.preventDefault()
         input.focus()
+        closeWhenClickOther()
     }
 })
+
+function restart() {
+    window.api.restart()
+}

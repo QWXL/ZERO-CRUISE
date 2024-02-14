@@ -2,7 +2,7 @@
  * @Author: QWXL@zero-ai.online
  * @Date: 2024-01-31 23:36:03
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-13 22:30:00
+ * @LastEditTime: 2024-02-14 22:31:01
  * @FilePath: \cruise-client\main.js
  */
 const electron = require('electron');
@@ -19,6 +19,7 @@ const savesPath = path.join(app.getPath('userData'),"saves")
 const axios = require('axios')
 const express = require("express");
 const appserver = express();
+let clientData = {}
 const store = new Store({
   name: 'data' // 更改存储文件名，默认是'config'
 });
@@ -34,6 +35,14 @@ const clientKeyStore = new Store({
 }
 });
 let tray
+const boolean = {
+  "true":true,
+  "false":false,
+  null:false,
+  undefined:false,
+  true:true,
+  false:false
+}
 async function checkDirectoryExists(directoryPath) { // 检查存档目录是否存在
   try {
       await fs.access(directoryPath); // 如果存在，就什么也不做
@@ -49,7 +58,6 @@ async function checkDirectoryExists(directoryPath) { // 检查存档目录是否
             type: "error",
             buttons: ["我知道了"]
           })
-          app.quit()
       }
   }
 }
@@ -127,16 +135,11 @@ const createMainWindow = () => {
         label: '开机启动',
         checked : app.getLoginItemSettings().openAtLogin,
         click : function () {
-          if(!app.isPackaged){
             app.setLoginItemSettings({
               openAtLogin: !app.getLoginItemSettings().openAtLogin,
-              path: process.execPath
+              path: app.getPath('exe')
             })
-          }else{
-            app.setLoginItemSettings({
-              openAtLogin: !app.getLoginItemSettings().openAtLogin
-            })
-          }
+          
           console.log(app.getLoginItemSettings().openAtLogin)
           console.log(!app.isPackaged);
   
@@ -291,8 +294,9 @@ const createMainWindow = () => {
 
 
       const data = store.get('data')
-      console.log(safeStorage.decryptString(Buffer.from(data.data)))
-        win.webContents.send('localData',safeStorage.decryptString(Buffer.from(data.data)))
+      clientData = JSON.parse(safeStorage.decryptString(Buffer.from(data.data)))
+      console.log(clientData)
+      win.webContents.send('localData',safeStorage.decryptString(Buffer.from(data.data)),app.getVersion())
       
       /**
       * 显示指定标题和内容的弹窗
@@ -412,10 +416,18 @@ async function readAndSortTitlesByIds() {
   }
 }
 
+
+ipcMain.on('app-restart', function () {
+      app.relaunch()
+      app.quit()
+})
+
 var iconv = require('iconv-lite');
 var encoding = 'cp936';
 let sttProcess
-  if (await checkPortAvailable(6301)) {
+console.log(`sttp:${boolean[clientData.sttp ?? "true"]}(${clientData.sttp} ${typeof clientData})`)
+if (boolean[clientData.sttp ?? "true"]) {
+  if (await checkPortAvailable(6301) ) {
     // 启动语音服务
     sttProcess = spawn(path.join(__dirname,'stt_process.exe'), {
       shell: true, // 在Windows环境运行
@@ -458,8 +470,8 @@ let sttProcess
       type: "error",
       buttons: ["我知道了"]
     })
-    app.quit()
   }
+}
 
 
 
@@ -527,7 +539,6 @@ appserver.post('/stt/', async (req,res) => {
       type: "error",
       buttons: ["我知道了"]
     })
-    app.quit()
   }
 
 

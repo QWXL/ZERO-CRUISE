@@ -1030,7 +1030,7 @@ a.openlogoBackground {
     .stopProcessBtn span {
         color: rgb(255,150,150);
     }
-    .stopProcessBtn:hover span {
+    button.stopProcessBtn:hover span {
         color: red;
     }
 
@@ -1510,7 +1510,7 @@ a.openlogoBackground {
     -o-border-radius: 5px;
 }
 
-.saves-table .save:hover {
+.saves-table .save[outputId]:hover {
     box-shadow: var(--shadow-elevation-medium);
 }
 
@@ -1607,6 +1607,5 @@ a.openlogoBackground {
         color: rgba(255,255,255,0.5);
         font-size: 0.9rem;
         text-align: center;
-        pointer-events: none;
         user-select: none;
     }
