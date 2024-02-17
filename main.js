@@ -2,7 +2,7 @@
  * @Author: QWXL@zero-ai.online
  * @Date: 2024-01-31 23:36:03
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-17 21:52:23
+ * @LastEditTime: 2024-02-18 01:27:55
  * @FilePath: \cruise-client\main.js
  */
 const electron = require('electron');
@@ -19,7 +19,7 @@ const savesPath = path.join(app.getPath('userData'),"saves")
 const axios = require('axios')
 const express = require("express");
 const appserver = express();
-let clientData = {}
+let clientData = null
 const store = new Store({
   name: 'data' // 更改存储文件名，默认是'config'
 });
@@ -295,13 +295,15 @@ const createMainWindow = () => {
 
 
       const data = store.get('data')
+      if (data?.data) {
+      clientData = JSON.parse(safeStorage.decryptString(Buffer.from(data?.data))) 
+      }
+      console.log(clientData)
       if (clientData) {
-        clientData = JSON.parse(safeStorage.decryptString(Buffer.from(data.data))) 
-        console.log(clientData)
         win.webContents.send('localData',safeStorage.decryptString(Buffer.from(data.data)),app.getVersion())
         if (app.isPackaged && (os.platform() === 'win32')) {
           const server = "https://update.zero-ai.online"
-          const url = `${server}/update/${process.platform}/${app.getVersion()}`
+          const url = `${server}/update/${processNode.platform}/${app.getVersion()}`
           autoUpdater.setFeedURL({ url })
           autoUpdater.checkForUpdates()
           autoUpdater.addListener('update-available', () => {
@@ -321,6 +323,7 @@ const createMainWindow = () => {
         }
       } else {
         win.webContents.send('localData',"{}",app.getVersion())
+        win.webContents.send('first',true)
       }
       
       ipcMain.on('quitAndInstall', () => {

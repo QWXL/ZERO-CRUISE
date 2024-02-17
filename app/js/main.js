@@ -557,12 +557,13 @@ function toggleHide(time) {
 /**
  * `createChatBubble` 函数创建一个具有指定时间、发送者、内容、标签和元素 ID 的聊天气泡元素。
  * @param {string} time - 创建聊天气泡的时间。
- * @param {string} who - “who”参数代表聊天气泡的发送者。它可以是“用户”或“助理”。
- * @param {string} content - `content` 参数代表聊天气泡的消息内容。它可以是包含气泡的文本消息或 HTML 内容的字符串。
- * @param {string} tag - `tag` 参数用于指定聊天气泡的类型。它可以具有三个可能的值：“plus”、“custom”或“normal”。这些值确定聊天气泡的样式，并用于在助理消息旁边显示标签。
- * @param {string} eid - `eid` 参数是一个可选参数，表示聊天气泡的 ID。它用于唯一标识每个聊天气泡元素。如果提供，聊天气泡元素将具有指定的 ID。
- * @param {boolean} security - `security`参数是一个可选参数，表示是否使用较为保守的创建机制
- * @returns 函数“createChatBubble”返回创建并附加到“chatContainer”的“chatBubble”元素。
+ * @param {string} who - `who`参数代表聊天气泡的发送者。它可以是以下多个值的任意一个："user","assistant","system","error","letter"。
+ * @param {string} content - `content` 参数代表聊天气泡的消息内容。它可以是包含气泡的文本消息或 HTML 内容的字符串（关于HTML是否解析，取决于"who"与"security"的值）。
+ * @param {string?} tag - `tag` 参数用于指定聊天气泡的类型。它可以具有三个可能的值："plus"、"custom"或"normal"。这些值确定聊天气泡的样式，并用于在助理消息旁边显示标签。
+ * @param {string?} eid - `eid` 参数是一个可选参数，表示聊天气泡的 ID。它用于唯一标识每个聊天气泡元素。如果提供，聊天气泡元素将具有指定的 ID。
+ * @param {number?} chatIndex - `chatIndex`参数是一个可选参数，表示聊天气泡对应的聊天记录（chatLog）索引位置，适用于who == "user"时的编辑功能。
+ * @param {boolean?} security - `security`参数是一个可选参数，如果显式的规定它，则可以设置是否使用激进或安全的创建策略，如果不规定它，则使用更安全的策略（true）
+ * @returns 返回创建并附加到"chatContainer"的"chatBubble"元素。
  */
 function createChatBubble(time,who,content,tag,eid,chatIndex,security) { 
     console.log(who)
@@ -618,8 +619,12 @@ function createChatBubble(time,who,content,tag,eid,chatIndex,security) {
     }
     chatBubble.appendChild(chatBubbleMessage)
     if (who == 'user') {
-        if (security) chatBubbleMessage.textContent = message
-        else chatBubbleMessage.innerHTML = message
+        if (security ?? true) {
+            chatBubbleMessage.textContent = message
+        }
+        else {
+            chatBubbleMessage.innerHTML = message
+        }
         const chatEditContainer = document.createElement('button')
         chatEditContainer.classList.add('chatEdit')
         chatEditContainer.title = `编辑`

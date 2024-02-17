@@ -28,7 +28,7 @@
           "unpackDir":"./stt"
         },
         "name": "Cruise",
-        "icon": "favicon",
+        "icon": "AKETA AI",
         "win32metadata": {
           "ProductName": "Cruise Windows",
           "CompanyName": "zero-ai.online",
