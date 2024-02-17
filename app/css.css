@@ -605,7 +605,7 @@ a.openlogoBackground {
         top:20%;
         left:5%;
         width: 90%;
-        height: 45%;
+        height: 60%;
         background-color: #555;
         z-index: 1000;
         border: 0;
@@ -697,7 +697,7 @@ a.openlogoBackground {
         font-size: 16;
         border-radius: 3px;
         margin-left: 10%;
-        margin-top: 17%;
+        margin-top: 8%;
         resize: none;
         padding: 5px;
 
@@ -721,8 +721,8 @@ a.openlogoBackground {
         position: absolute;
         top:27%;
         height: 30%;
-        width: 95%;
-        left:2.5%;
+        width: 80%;
+        left: 10%;
         background-color: #444;
         border-radius: 6px;
         z-index: 1145141919810;

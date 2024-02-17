@@ -2,11 +2,11 @@
  * @Author: QWXL@zero-ai.online
  * @Date: 2024-01-31 23:36:03
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-14 22:31:01
+ * @LastEditTime: 2024-02-17 20:57:46
  * @FilePath: \cruise-client\main.js
  */
 const electron = require('electron');
-const { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage, Notification, ipcMain, safeStorage, process, screen, shell, dialog  } = electron
+const { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage, Notification, ipcMain, safeStorage, process, screen, shell, dialog, autoUpdater   } = electron
 const processNode = require('node:process');
 const path = require('path');
 const fs = require('fs/promises')
@@ -14,7 +14,7 @@ const prompt = require('electron-prompt');
 const os = require('os');
 const Store = require('electron-store');
 const portscanner = require('portscanner');
-const { spawn , exec} = require('child_process');
+const { spawn , exec, execFile} = require('child_process');
 const savesPath = path.join(app.getPath('userData'),"saves")
 const axios = require('axios')
 const express = require("express");
@@ -86,7 +86,7 @@ const createMainWindow = () => {
       frame: false,
       darkTheme: true,
       title: "ZERO CRUISE",
-      icon: path.join(__dirname, ),
+      icon: path.join(__dirname, 'favicon.ico'),
       webPreferences: {
         preload: path.join(__dirname, 'preload.js')
       }
@@ -107,7 +107,9 @@ const createMainWindow = () => {
 
   app.whenReady().then(async () => {
     let win = createMainWindow()
+    if (!app.isPackaged) {
     win.webContents.openDevTools()
+    }
     win.on('blur', () => {
       win.hide();
     })
@@ -294,9 +296,38 @@ const createMainWindow = () => {
 
 
       const data = store.get('data')
-      clientData = JSON.parse(safeStorage.decryptString(Buffer.from(data.data)))
-      console.log(clientData)
-      win.webContents.send('localData',safeStorage.decryptString(Buffer.from(data.data)),app.getVersion())
+      if (clientData) {
+        clientData = JSON.parse(safeStorage.decryptString(Buffer.from(data.data))) 
+        console.log(clientData)
+        win.webContents.send('localData',safeStorage.decryptString(Buffer.from(data.data)),app.getVersion())
+        if (app.isPackaged && (os.platform() === 'win32')) {
+          const server = "https://update.zero-ai.online"
+          const url = `${server}/update/${process.platform}/${app.getVersion()}`
+          autoUpdater.setFeedURL({ url })
+          autoUpdater.checkForUpdates()
+          autoUpdater.addListener('update-available', () => {
+            win.webContents.send('update',{type:'available'})
+          })
+          autoUpdater.addListener('update-downloaded', ({releaseName}) => {
+          win.webContents.send('update',{type:'downloaded',release:releaseName})
+        })
+        autoUpdater.addListener('error', (error) => {
+          dialog.showMessageBox(win,{
+            message: `自动更新模块出现问题：${error}`,
+            title: "ZERO ERROR",
+            type: "error",
+            buttons: ["我知道了"]
+          })
+        })
+        }
+      } else {
+        win.webContents.send('localData',"{}",app.getVersion())
+      }
+      
+      ipcMain.on('quitAndInstall', () => {
+        autoUpdater.quitAndInstall()
+        
+      })
       
       /**
       * 显示指定标题和内容的弹窗
@@ -341,6 +372,7 @@ const createMainWindow = () => {
     if (process.platform !== 'darwin') app.quit()
   })
 
+  fs.cp(path.join(__dirname,'killSttProcess.cmd'), path.join(app.getPath('temp'),'cruise','killSttProcess.cmd'));
   app.on('before-quit', () => {
     globalShortcut.unregisterAll();    // 注销所有快捷键
     win.webContents.send('before-quit',true)
@@ -354,7 +386,7 @@ const createMainWindow = () => {
       processNode?.kill(pid);
       }
       sttProcess?.kill();
-      exec(path.join(__dirname,'killSttProcess.cmd'))
+      exec(path.join(app.getPath('temp'),'cruise','killSttProcess.cmd'))
   })
 
 
@@ -422,19 +454,23 @@ ipcMain.on('app-restart', function () {
       app.quit()
 })
 
+console.log(processNode.env)
 var iconv = require('iconv-lite');
 var encoding = 'cp936';
 let sttProcess
 console.log(`sttp:${boolean[clientData.sttp ?? "true"]}(${clientData.sttp} ${typeof clientData})`)
 if (boolean[clientData.sttp ?? "true"]) {
   if (await checkPortAvailable(6301) ) {
+    await fs.cp(path.join(__dirname,'stt_process.exe'), path.join(app.getPath('temp'),'stt','stt_process.exe'));
     // 启动语音服务
-    sttProcess = spawn(path.join(__dirname,'stt_process.exe'), {
+    sttProcess = spawn(`${path.join(app.getPath('temp'),'stt','stt_process.exe')}`, {
       shell: true, // 在Windows环境运行
-      windowsHide: false,
-      cwd: __dirname,
+      windowsHide: true,
+      cwd: path.join(app.getPath('temp'),'stt'),
       stdio: 'pipe',
-      encoding: 'buffer'
+      encoding: 'buffer',
+      env:processNode.env,
+      detached: false
       });
 
     sttProcess.stdout.on('data', (data) => {
@@ -453,16 +489,19 @@ if (boolean[clientData.sttp ?? "true"]) {
       if (line.includes('[connectionError]')) {
         win.webContents.send('sttProcess',{type:"connection",content:false})
       }
+      console.log(line)
     });
 
    sttProcess.stderr.on('data', (data) => {
-    console.log(data.toString())
+    const line = iconv.decode(data, encoding)
+    console.log(line)
   });
 
-   sttProcess.on('close', (code) => {
-     console.log(`Child process exited with code ${code}`);
+   sttProcess.on('close', (code,signal) => {
+     console.log(`Child process exited with code ${code} (${signal})`);
      win.webContents.send('sttProcess',{type:"failed",content:code})
    });
+
   } else {
     dialog.showMessageBox(win,{
       message: `端口6301被占用！请尝试关闭残留程序或重启电脑解决问题。`,
@@ -471,6 +510,7 @@ if (boolean[clientData.sttp ?? "true"]) {
       buttons: ["我知道了"]
     })
   }
+  
 }
 
 

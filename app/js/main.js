@@ -638,7 +638,7 @@ function createChatBubble(time,who,content,tag,eid,chatIndex,security) {
         chatBubbleMessage.textContent = ''
         chatBubbleMessage.innerHTML = ''
     }
-    let height = window.innerHeight + Number(chatContainer.style.height.replaceAll('px','')) + chatBubble.clientHeight * 2
+    let height = Number(chatContainer.style.height.replaceAll('px','')) + chatBubble.clientHeight * 2
     console.log(height)
     chatContainer.style.height = `${height}px`
     Logo.style.display = 'none'
@@ -1766,3 +1766,30 @@ document.addEventListener('keypress', function(event) {
 function restart() {
     window.api.restart()
 }
+
+
+
+window.api.updateListener((object) => {
+    switch (object.type) {
+        case 'available': {
+        const fakeContent = {
+            "time": getTime(),
+            "content": `已有新的版本更新可用，自动下载。`,
+            "user": "letter"
+        }
+        parseResult({AISend:fakeContent})
+            break;
+        }
+        case 'downloaded': {
+        const fakeContent = {
+                "time": getTime(),
+                "content": `版本「${object.content}」现已可用 <br><button class="btnInChat" style="margin-top:20px;padding:10px" id="" onclick="window.api.quitAndInstall()">重启以应用<span class="iconfont icon-ic_Refresh closeHideBtn"></span></button>`,
+                "user": "letter" 
+        }
+        parseResult({AISend:fakeContent}) 
+            break;
+        }
+        default:
+            break;
+    }
+})

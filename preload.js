@@ -2,7 +2,7 @@
  * @Author: BuildTools unconfigured@null.spigotmc.org
  * @Date: 2024-01-31 23:44:44
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-12 21:21:58
+ * @LastEditTime: 2024-02-17 20:54:57
  * @FilePath: \cruise-client\preload.js
  */
 
@@ -26,7 +26,9 @@ contextBridge.exposeInMainWorld('api', {
   prompt: (title, content) => {return ipcRenderer.sendSync('window-prompt', title, content)},
   startStt: () => ipcRenderer.send('startStt'),
   stopStt: () => ipcRenderer.send('stopStt'),
-  restart: () => ipcRenderer.send('app-restart')
+  restart: () => ipcRenderer.send('app-restart'),
+  updateListener: () => ipcRenderer.on('update', (object) => callback(object)),
+  quitAndInstall: () => ipcRenderer.send('quitAndInstall')
 })
 ipcRenderer.on('localData', (_event, localData, version) => {
   console.log(localData)

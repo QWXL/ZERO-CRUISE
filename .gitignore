@@ -1,6 +1,7 @@
 /out
 /node_modules
 /stt/internal
+/stt/__pycache__
 *.log
 out/
 stt_process.exe
