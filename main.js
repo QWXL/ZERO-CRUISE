@@ -2,7 +2,7 @@
  * @Author: QWXL@zero-ai.online
  * @Date: 2024-01-31 23:36:03
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-17 20:57:46
+ * @LastEditTime: 2024-02-17 21:52:23
  * @FilePath: \cruise-client\main.js
  */
 const electron = require('electron');
@@ -103,8 +103,7 @@ const createMainWindow = () => {
   
 
   app.disableHardwareAcceleration() // 关闭硬件加速 避免在集显电脑上无法渲染界面
-
-
+  app.commandLine.appendSwitch('lang', 'zh-CN')
   app.whenReady().then(async () => {
     let win = createMainWindow()
     if (!app.isPackaged) {
