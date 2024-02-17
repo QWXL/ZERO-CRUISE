@@ -13,6 +13,21 @@
             "setupIcon": "./favicon.ico",
             "iconUrl": "https://chat.zero-ai.online/src/favicon.ico"
           }
+        },
+        {
+          "name": "@electron-forge/maker-deb",
+          "config": {
+            "options": {
+              "maintainer": "XiaoTong Inc.",
+              "homepage": "https://zero-ai.online"
+            }
+          }
+        },
+        {
+          "name": "@electron-forge/maker-dmg",
+          "config": {
+            "format": "ULFO"
+          }
         }
       ],
 			"electronPackagerConfig": {
@@ -28,7 +43,7 @@
           "unpackDir":"./stt"
         },
         "name": "Cruise",
-        "icon": "favicon",
+        "icon": "AKETA AI",
         "win32metadata": {
           "ProductName": "Cruise Windows",
           "CompanyName": "zero-ai.online",

@@ -7,6 +7,7 @@
  */
 
 const { contextBridge, ipcRenderer } = require('electron/renderer')
+let isFirst = false
 
 contextBridge.exposeInMainWorld('api', {
   newMessage: (messageObject) => ipcRenderer.send('newMessage', messageObject),
@@ -28,6 +29,7 @@ contextBridge.exposeInMainWorld('api', {
   stopStt: () => ipcRenderer.send('stopStt'),
   restart: () => ipcRenderer.send('app-restart'),
   updateListener: () => ipcRenderer.on('update', (object) => callback(object)),
+  isFirst: isFirst,
   quitAndInstall: () => ipcRenderer.send('quitAndInstall')
 })
 ipcRenderer.on('localData', (_event, localData, version) => {
@@ -50,3 +52,11 @@ ipcRenderer.on('localData', (_event, localData, version) => {
   console.log(JSON.stringify(localStorage,null,2))
   }
 })
+
+ipcRenderer.on('first',() => {
+  createChatBubble(getTime(),'letter',`欢迎使用 ZERO AI CRUISE 客户端！<br>在这里，你可以体验到与网站中截然不同的使用体验，比如：<br><br>1. 全新的语音输入系统；<br>2. [Alt]+[Space]随时唤出；<br>3. 存档自动备份，自动罗列；<br><br>and more ...<br><button class="btnInChat" style="margin-top:20px;padding:10px" id="refreshScreen(false,false)" onclick="">好耶！<span class="iconfont icon-icon_line_thumb-up closeHideBtn"></span></button>`)
+  isFirst = true
+  console.log(isFirst)
+  
+})
+

@@ -1,3 +1,11 @@
+'''
+Author: 秋晚夕落 qwxl@zero-ai.online
+Date: 2024-02-17 21:35:21
+LastEditors: 秋晚夕落 qwxl@zero-ai.online
+LastEditTime: 2024-02-18 00:14:47
+FilePath: \cruise-client\stt\util\client_create_file.py
+Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+'''
 import wave 
 import shutil 
 from subprocess import Popen, PIPE, DEVNULL
@@ -19,22 +27,10 @@ def create_file(channels: int, time_start: float) -> Tuple[Path, Union[Popen, Wa
     makedirs(folder_path, exist_ok=True)
     file_path = tempfile.mktemp(prefix=f'({time_ymdhms})', dir=folder_path)
     file_path = Path(file_path)
-
-    if shutil.which('ffmpeg'):
-        # 用户已安装 ffmpeg，则输出到 mp3 文件
-        file_path = file_path.with_suffix('.mp3')
-        # 构造ffmpeg命令行
-        ffmpeg_command = [
-            'ffmpeg', '-y', 
-            '-f', 'f32le', '-ar', '48000', '-ac', f'{channels}', '-i', '-',
-            '-b:a', '192k', file_path,
-        ]
-        # 执行ffmpeg命令行，得到 Popen
-        file = Popen(ffmpeg_command, stdin=PIPE, stdout=DEVNULL, stderr=DEVNULL)
-    else:                       # 用户未安装 ffmpeg，则输出为 wav 格式
-        file_path = file_path.with_suffix('.wav')
-        file = wave.open(str(file_path), 'w')
-        file.setnchannels(channels)
-        file.setsampwidth(2)
-        file.setframerate(48000)
+                     # 用户未安装 ffmpeg，则输出为 wav 格式
+    file_path = file_path.with_suffix('.wav')
+    file = wave.open(str(file_path), 'w')
+    file.setnchannels(channels)
+    file.setsampwidth(2)
+    file.setframerate(48000)
     return file_path, file
