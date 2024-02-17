@@ -15,19 +15,7 @@
           }
         },
         {
-          "name": "@electron-forge/maker-deb",
-          "config": {
-            "options": {
-              "maintainer": "XiaoTong Inc.",
-              "homepage": "https://zero-ai.online"
-            }
-          }
-        },
-        {
-          "name": "@electron-forge/maker-dmg",
-          "config": {
-            "format": "ULFO"
-          }
+          "name": "@electron-forge/maker-zip"
         }
       ],
 			"electronPackagerConfig": {
