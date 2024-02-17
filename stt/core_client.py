@@ -12,7 +12,7 @@ import typer
 import colorama
 import keyboard
 from threading import Thread
-from config import ClientConfig as Config
+from config import ClientConfig as Config,ServerConfig
 from util.client_cosmic import console, Cosmic
 from util.client_stream import stream_open, stream_close
 from util.client_shortcut_handler import bond_shortcut, hold_mode
@@ -25,9 +25,9 @@ from util.client_adjust_srt import adjust_srt
 
 from util.empty_working_set import empty_current_working_set
 
-
+logger = Config.logger
 # 确保根目录位置正确，用相对路径加载模型
-BASE_DIR = os.path.dirname(__file__); os.chdir(BASE_DIR)
+BASE_DIR = os.path.dirname(sys.executable)
 
 # 确保终端能使用 ANSI 控制字符
 colorama.init()
@@ -130,7 +130,7 @@ class Item(BaseModel):
 
 @app.post("/stt/")
 def create_item(item: Item):
-    print(f'[input]' + item.type)
+    logger.info(f'[input]' + item.type)
     hold_mode(item.type)
     return item.type
 
@@ -147,4 +147,5 @@ def async_fun(f):
 
 @async_fun
 def app_server():
-    uvicorn.run(app, host="0.0.0.0", port=6301)
+    logger.debug(f"服务器将在{ServerConfig.addr}:{ServerConfig.port}上启动")
+    uvicorn.run(app, host=ServerConfig.addr, port=ServerConfig.port,log_level='critical')

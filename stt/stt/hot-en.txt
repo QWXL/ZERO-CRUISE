@@ -1,2 +1,0 @@
-# 在此文件放置英文热词 
-# Put English hot words here, one per line. Line starts with # will be ignored. 

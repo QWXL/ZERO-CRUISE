@@ -1,12 +1,13 @@
 
 from collections.abc import Iterable
 from pathlib import Path
-
-
+import os,sys
+from Log4p import LogManager
+base_dir = os.path.dirname(sys.executable)
 # 服务端配置
 class ServerConfig:
-    addr = '127.0.0.1'
-    port = '6016'
+    addr = '0.0.0.0'
+    port = 6016
 
     format_num = True  # 输出时是否将中文数字转为阿拉伯数字
     format_punc = True  # 输出时是否启用标点符号引擎
@@ -17,6 +18,9 @@ class ServerConfig:
 class ClientConfig:
     addr = 'stt.zero-ai.online'          # Server 地址
     port = ''               # Server 端口
+    HotWordsPath = base_dir
+    HotWordsReadMode = 'file'
+    logger = LogManager().GetLogger('Client',False)
 
     shortcut     = 'F24'        # 控制录音的快捷键，默认是 CapsLock
     hold_mode    = True         # 长按模式，按下录音，松开停止，像对讲机一样用。
@@ -47,8 +51,11 @@ class ClientConfig:
 
     file_seg_duration = 25           # 转录文件时分段长度
     file_seg_overlap = 2             # 转录文件时分段重叠
+    ZH = f""""""
+    EN = f""""""
+    RULE = f""""""
+    KEYWORD = f""""""
 
-    folderHotWords = ""  # 存放热词的文件夹
 
 class ModelPaths:
     model_dir = Path() / 'models'
