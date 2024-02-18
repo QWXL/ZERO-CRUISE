@@ -2,7 +2,7 @@
  * @Author: QWXL@zero-ai.online
  * @Date: 2024-01-31 23:36:03
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-18 01:27:55
+ * @LastEditTime: 2024-02-18 12:57:18
  * @FilePath: \cruise-client\main.js
  */
 const electron = require('electron');
@@ -301,26 +301,7 @@ const createMainWindow = () => {
       console.log(clientData)
       if (clientData) {
         win.webContents.send('localData',safeStorage.decryptString(Buffer.from(data.data)),app.getVersion())
-        if (app.isPackaged && (os.platform() === 'win32')) {
-          const server = "https://update.zero-ai.online"
-          const url = `${server}/update/${processNode.platform}/${app.getVersion()}`
-          autoUpdater.setFeedURL({ url })
-          autoUpdater.checkForUpdates()
-          autoUpdater.addListener('update-available', () => {
-            win.webContents.send('update',{type:'available'})
-          })
-          autoUpdater.addListener('update-downloaded', ({releaseName}) => {
-          win.webContents.send('update',{type:'downloaded',release:releaseName})
-        })
-        autoUpdater.addListener('error', (error) => {
-          dialog.showMessageBox(win,{
-            message: `自动更新模块出现问题：${error}`,
-            title: "ZERO ERROR",
-            type: "error",
-            buttons: ["我知道了"]
-          })
-        })
-        }
+
       } else {
         win.webContents.send('localData',"{}",app.getVersion())
         win.webContents.send('first',true)
