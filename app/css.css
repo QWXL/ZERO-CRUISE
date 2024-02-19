@@ -1609,3 +1609,28 @@ a.openlogoBackground {
         text-align: center;
         user-select: none;
     }
+
+
+    /* HTML: <div class="chatLoader"></div> */
+.chatLoader {
+    height: 30px;
+    aspect-ratio: 3;
+    --c:no-repeat linear-gradient(#c5c5c5 0 0);
+    background:
+      var(--c) calc(0*100%/5) 50%,
+      var(--c) calc(1*100%/5) 50%,
+      var(--c) calc(2*100%/5) 50%,
+      var(--c) calc(3*100%/5) 50%,
+      var(--c) calc(4*100%/5) 50%,
+      var(--c) calc(5*100%/5) 50%;
+    background-size:calc(100%/6 + 1px) 50%;
+    animation: l19 1s infinite cubic-bezier(0.5,170,0.5,-170);
+  }
+  @keyframes l19 {
+      14.28% {background-position: calc(0*100%/5) 51%, calc(1*100%/5) 50%, calc(2*100%/5) 50%, calc(3*100%/5) 50%, calc(4*100%/5) 50%, calc(5*100%/5) 50%}
+      28.57% {background-position: calc(0*100%/5) 50%, calc(1*100%/5) 51%, calc(2*100%/5) 50%, calc(3*100%/5) 50%, calc(4*100%/5) 50%, calc(5*100%/5) 50%}
+      42.85% {background-position: calc(0*100%/5) 50%, calc(1*100%/5) 50%, calc(2*100%/5) 51%, calc(3*100%/5) 50%, calc(4*100%/5) 50%, calc(5*100%/5) 50%}
+      57.14% {background-position: calc(0*100%/5) 50%, calc(1*100%/5) 50%, calc(2*100%/5) 50%, calc(3*100%/5) 51%, calc(4*100%/5) 50%, calc(5*100%/5) 50%}
+      71.42% {background-position: calc(0*100%/5) 50%, calc(1*100%/5) 50%, calc(2*100%/5) 50%, calc(3*100%/5) 50%, calc(4*100%/5) 51%, calc(5*100%/5) 50%}
+      85.71% {background-position: calc(0*100%/5) 50%, calc(1*100%/5) 50%, calc(2*100%/5) 50%, calc(3*100%/5) 50%, calc(4*100%/5) 50%, calc(5*100%/5) 51%}
+  }

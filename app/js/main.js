@@ -270,7 +270,7 @@ function inputByUser(message,audio) {
     if (message) {
     createChatBubble(getTime(),'user',message,tag,`prompt-${mid}`,(chatLog.length - 1))
     }
-    tempBubble = createChatBubble('Connecting','assistant',"<img src='./loading.gif' class='tempBubble'>",tag)
+    tempBubble = createChatBubble('Connecting','assistant',"<div class=\"chatLoader\"></div>",tag)
     window.scrollTo({
         top: window.scrollY + tempBubble.clientHeight,
         behavior: "smooth"
@@ -558,7 +558,7 @@ function toggleHide(time) {
  * `createChatBubble` 函数创建一个具有指定时间、发送者、内容、标签和元素 ID 的聊天气泡元素。
  * @param {string} time - 创建聊天气泡的时间。
  * @param {string} who - `who`参数代表聊天气泡的发送者。它可以是以下多个值的任意一个："user","assistant","system","error","letter"。
- * @param {string} content - `content` 参数代表聊天气泡的消息内容。它可以是包含气泡的文本消息或 HTML 内容的字符串（关于HTML是否解析，取决于"who"与"security"的值）。
+ * @param {HTMLString | string} content - `content` 参数代表聊天气泡的消息内容。它可以是包含气泡的文本消息或 HTML 内容的字符串（关于HTML是否解析，取决于"who"与"security"的值）。
  * @param {string?} tag - `tag` 参数用于指定聊天气泡的类型。它可以具有三个可能的值："plus"、"custom"或"normal"。这些值确定聊天气泡的样式，并用于在助理消息旁边显示标签。
  * @param {string?} eid - `eid` 参数是一个可选参数，表示聊天气泡的 ID。它用于唯一标识每个聊天气泡元素。如果提供，聊天气泡元素将具有指定的 ID。
  * @param {number?} chatIndex - `chatIndex`参数是一个可选参数，表示聊天气泡对应的聊天记录（chatLog）索引位置，适用于who == "user"时的编辑功能。
@@ -1108,6 +1108,7 @@ async function getACCESS(message,UG) {
                 } else if (res.code == 500) {
                     createErrBubble(getTime(),'error',res.content,'','access')
                     showId.innerHTML = `<s>ID:　#${localStorage.getItem('id')}</s>`
+                    showId.opacity = `0.7`
                     sessionStorage.setItem('plusTime',plusTime)
                     socket.disconnect()
                 } else if (res.code == 202) {
@@ -1426,7 +1427,7 @@ async function reSend(errorBubbleId,type) {
     if (type == 'resend') {
         inputByUser()
     } else if (type == 'access') {
-        tempBubble = createChatBubble('Connecting','assistant',"<img src='./loading.gif' class='tempBubble'>")
+        tempBubble = createChatBubble('Connecting','assistant',"<div class=\"chatLoader\"></div>")
         getACCESS(`重新申请`,false)
         .then(() => {
             try {
@@ -1717,7 +1718,7 @@ function startSound2Text() {
     window.api.startStt()
     useStt = true
     sttType.textContent = `聆听中...释放开始处理`
-    tempSttBubble = createChatBubble('正在聆听...','user',"<img src='./loading-user.gif' class='tempBubble'>",null,null,null,false)
+    tempSttBubble = createChatBubble('正在聆听...','user',"<div class=\"chatLoader\"></div>",null,null,null,false)
 }
 }
 
