@@ -106,6 +106,7 @@ html {
 
 .btnInChat:hover {
     box-shadow: var(--shadow-elevation-medium);
+    border-color:rgb(255,255,255);
 }
 
 
@@ -261,6 +262,7 @@ a.openlogoBackground {
     
     #netStauts:hover {
         color: #fff !important;
+        cursor: pointer;
     }
 
     .input-button {
@@ -301,6 +303,7 @@ a.openlogoBackground {
         width: 100vw;
         height: 80%;
         user-select: none;
+        overflow-y: auto;
         overflow-x: hidden;
     }
     
@@ -333,6 +336,7 @@ a.openlogoBackground {
         padding-top: 1.5%;
         padding-bottom: 1.5%;
         user-select: contain;
+        content-visibility: auto
     }
     
     .chatBubbleTime {
@@ -902,6 +906,7 @@ a.openlogoBackground {
         transition: transform 0.3s ease-in-out;
       }
     
+
     
       .plus-switch input:checked + label::before {
         transform: translateX(30px);
@@ -1436,6 +1441,7 @@ a.openlogoBackground {
     left: 0;
     pointer-events: none;
     user-select: none;
+    z-index: 2147483647;
 }
 
 .dropScreen span {
@@ -1560,6 +1566,14 @@ a.openlogoBackground {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+    width: inherit;
+}
+
+.saves-table tr th.bubble.save {
+    padding-right: 3%;
+}
+
+.saves-table tr th:hover p {
     width: 100%;
 }
 
@@ -1634,3 +1648,68 @@ a.openlogoBackground {
       71.42% {background-position: calc(0*100%/5) 50%, calc(1*100%/5) 50%, calc(2*100%/5) 50%, calc(3*100%/5) 50%, calc(4*100%/5) 51%, calc(5*100%/5) 50%}
       85.71% {background-position: calc(0*100%/5) 50%, calc(1*100%/5) 50%, calc(2*100%/5) 50%, calc(3*100%/5) 50%, calc(4*100%/5) 50%, calc(5*100%/5) 51%}
   }
+
+/* HTML: <div class="spinnerLoader"></div> */
+.spinnerLoader {
+    width: 30px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: 
+      radial-gradient(farthest-side,#fcfcfc 94%,#0000) top/8px 8px no-repeat,
+      conic-gradient(#0000 30%,#ffffff);
+    -webkit-mask: radial-gradient(farthest-side,#0000 calc(100% - 8px),#000 0);
+    mask: radial-gradient(farthest-side,#0000 calc(100% - 8px),#000 0);
+    animation: l13 1s infinite linear;
+  }
+  @keyframes l13{ 
+    100%{transform: rotate(1turn)}
+  }
+
+
+  tr.option {
+    cursor: not-allowed;
+    height: 38;
+    opacity: 1;
+    user-select: none;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  tr.option input,tr.option label {
+    display: none;
+  }
+
+  .lockOptions {
+    width: 98%;
+    left: 1%;
+    height: 27%;
+    position: absolute;
+    top:0rem;
+  }
+
+  .lockOptions .loaderAnimation {
+    position: absolute;
+    right:7%;
+    top:0%
+  }
+
+  .lockOptions .loaderAnimation .spinnerLoader {
+    margin: 10px 0;
+    opacity: 0.7;
+  }
+
+  .lockOptions.notEnabled div{
+    animation-play-state: paused;
+    display: none;
+  }
+
+  input.switchWait + label {
+    background-color: #444;
+    user-select: none;
+    pointer-events: none;
+    cursor: wait;
+    }
+
+    input.switchWait + label::before {
+        opacity: 0;
+        }

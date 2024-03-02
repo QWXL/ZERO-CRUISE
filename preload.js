@@ -2,7 +2,7 @@
  * @Author: BuildTools unconfigured@null.spigotmc.org
  * @Date: 2024-01-31 23:44:44
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-17 20:54:57
+ * @LastEditTime: 2024-02-23 19:02:46
  * @FilePath: \cruise-client\preload.js
  */
 
@@ -30,10 +30,13 @@ contextBridge.exposeInMainWorld('api', {
   restart: () => ipcRenderer.send('app-restart'),
   updateListener: () => ipcRenderer.on('update', (object) => callback(object)),
   isFirst: isFirst,
-  quitAndInstall: () => ipcRenderer.send('quitAndInstall')
+  quitAndInstall: () => ipcRenderer.send('quitAndInstall'),
+  hideWindow: () => ipcRenderer.send('hideWindow')
 })
 ipcRenderer.on('localData', (_event, localData, version) => {
   console.log(localData)
+  console.log(version)
+  sessionStorage.setItem('version',version)
   if (localData?.id) {
   console.log(JSON.stringify(localData,null,2))
   document.getElementById('versionSpan').textContent = version

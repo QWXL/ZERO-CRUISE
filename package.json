@@ -1,49 +1,8 @@
 {
   "name": "cruise-client",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "ZERO AI On Windows Client",
   "main": "main.js",
-
-  "config": {
-    "forge": {
-      "makers": [
-        {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "setupIcon": "./favicon.ico",
-            "iconUrl": "https://chat.zero-ai.online/src/favicon.ico"
-          }
-        },
-        {
-          "name": "@electron-forge/maker-zip"
-        }
-      ],
-			"electronPackagerConfig": {
-				"packageManager": "npm",
-        "icon": "./favicon.ico",
-				"asar": true 
-			},
-			"electronWinstallerConfig": {
-				"name": "electron-app"
-			},
-      "packagerConfig": {
-        "asar": {
-          "unpackDir":"./stt"
-        },
-        "name": "Cruise",
-        "icon": "AKETA AI",
-        "win32metadata": {
-          "ProductName": "Cruise Windows",
-          "CompanyName": "zero-ai.online",
-          "FileDescription": "ZERO AI 巡航客户端"
-        },
-        "ignore":[
-          "/stt/",
-          "/out/"
-        ]
-    }
-    }
-  },
   "scripts": {
     "start": "electron .",
     "package": "electron-forge package",
@@ -77,6 +36,10 @@
     "electron-store": "^8.1.0",
     "express": "^4.18.2",
     "iconv-lite": "^0.6.3",
-    "portscanner": "^2.2.0"
+    "portscanner": "^2.2.0",
+    "range": "^0.0.3",
+    "semver": "^7.6.0",
+    "window-shortcuts": "^0.4.0",
+    "windows-shortcuts": "^0.1.6"
   }
 }

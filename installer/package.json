@@ -1,0 +1,38 @@
+{
+  "name": "cruise-installer",
+  "version": "1.0.0",
+  "description": "The ZERO-Cruise's installer and Updater",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/QWXL/ZERO-CRUISE.git"
+  },
+  "author": "QWXL",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/QWXL/ZERO-CRUISE/issues"
+  },
+  "homepage": "https://github.com/QWXL/ZERO-CRUISE#readme",
+  "devDependencies": {
+    "@electron-forge/cli": "^7.3.0",
+    "@electron-forge/maker-deb": "^7.3.0",
+    "@electron-forge/maker-rpm": "^7.3.0",
+    "@electron-forge/maker-squirrel": "^7.3.0",
+    "@electron-forge/maker-zip": "^7.3.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.3.0",
+    "@electron-forge/plugin-fuses": "^7.3.0",
+    "electron": "^28.2.0",
+    "electron-forge": "^5.2.4"
+  },
+  "dependencies": {
+    "electron-dl": "^3.5.2",
+    "electron-squirrel-startup": "^1.0.0",
+    "fs": "^0.0.1-security",
+    "moment": "^2.30.1"
+  }
+}

@@ -2,6 +2,9 @@
 /node_modules
 /stt/internal
 /stt/__pycache__
+/installer/node_modules
+/installer/full-setup.exe
+/installer/out/
 *.log
 out/
 stt_process.exe

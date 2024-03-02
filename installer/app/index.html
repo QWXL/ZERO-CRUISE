@@ -1,0 +1,49 @@
+<!--
+ * @Author: 秋晚夕落 qwxl@zero-ai.online
+ * @Date: 2024-02-20 19:48:16
+ * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
+ * @LastEditTime: 2024-03-01 17:39:51
+ * @FilePath: \installer\app\index.html
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+	<link rel="stylesheet" href="css.css">
+    <link rel="stylesheet" href="iconfont.css">
+    <title>Welcome To ZERO-CRUISE</title>
+  </head>
+  <body>
+    <div id="start" class="fullScreen" style="display: block;">
+      <h1 class="mainTitle">与你同行，定义解惑，设置灵感</h1>
+        <button onclick="window.api.startDownload();document.getElementById('start').style.display = 'none'"><span style="font-size: 1rem;">启动 ZERO CRUISE 安装程序</span></button>
+        <div class="bottomProgess">
+          <span id="" class="progess">仍未开始</span>
+          <progress id="" max="100" value="0"></progress>
+        </div>
+    </div>
+    <p id="HeaderTime" class="HeaderTime HeaderTimeHover"></p>
+    <div id="more-container" class="more-container">
+        <button class="more-button" id="more-button" onclick="window.api.minisize()" title="最小化"><span class="iconfont icon-yuanshujufenxi more-icon" id="more-icon"></span></button>
+    </div>
+    <h1 class="mainTitle">与你同行，定义解惑，设置灵感</h1>
+    <p class="subTitle">似 此 星 辰 非 昨 夜 ，为 谁 风 露 立 中 宵 ？<br>
+    请稍后，我们正在为你做准备。</p>
+    <div class="bottomProgess">
+      
+      <span id="progress" class="progess">预加载...</span>
+      <progress id="fileProgress" max="100" value="0"></progress>
+    </div>
+    
+    <div id="downloaded" class="fullScreen" style="display: none;">
+      <h1 class="mainTitle">与你同行，定义解惑，设置灵感</h1>
+        <button onclick="window.api.startFullexe()"><span>完成安装</span></button>
+        <div class="bottomProgess">
+          <span id="" class="progess">全部完成</span>
+          <progress id="" max="100" value="100"></progress>
+        </div>
+    </div>
+    <script src="./renderer.js"></script>
+  </body>
+</html>
