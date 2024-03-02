@@ -26,3 +26,5 @@ ZERO AI的桌面级客户端，提供与网页端截然不同的使用体验。<
 
 <h2>图集</h2>
 <img src="https://chat.zero-ai.online/src/screenshot.png" width="100%">
+<br>
+在浏览器中体验ZERO AI：<a href="https://chat.zero-ai.online">https://chat.zero-ai.online</a>
