@@ -22,3 +22,7 @@ ZERO AI的桌面级客户端，提供与网页端截然不同的使用体验。<
 特别呜谢：影曦<br>
 <br>
 语音输入模块以<a href="https://github.com/HaujetZhao/CapsWriter-Offline">HaujetZhao/CapsWriter-Offline</a>为基础，进一步优化，改造后使用。<br>
+
+
+<h2>图集</h2>
+<img src="https://chat.zero-ai.online/src/screenshot.png" width="100%">

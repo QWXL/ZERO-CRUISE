@@ -652,7 +652,7 @@ function createChatBubble(time,who,content,tag,eid,chatIndex,security,array) {
         chatBubbleMessage.textContent = ''
         chatBubbleMessage.innerHTML = ''
     }
-    let height = Number(chatContainer.style.height.replaceAll('px','') || window.screen.availHeight) + chatBubble.scrollHeight * 2
+    let height = (Number(chatContainer.style.height.replaceAll('px','') || window.screen.availHeight) + chatBubble.scrollHeight * 4) + 200
     console.log(height)
     chatContainer.style.height = `${height}px`
     Logo.style.display = 'none'
