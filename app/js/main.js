@@ -39,7 +39,9 @@ const PromptMenu = document.getElementById('customPrompt');
 const PromptInput = document.getElementById('prompt-input');
 const logo = document.getElementById('actaLogo')
 const savesContainer = document.getElementById('saves-container')
+document.getElementById("versionSpan").textContent = sessionStorage.getItem('version');
 let plusPermission = false
+body.style.minHeight = '100vh'
 function showLoadLabel(text) {
     const loadLabel = document.getElementById('loadLabel') || {textContent:""}
     loadLabel.textContent = text
@@ -95,9 +97,9 @@ axios.get(`https://zero-ai.online/api/onetext?count=2`)
 })
 
 
-let socket = relinkIO()
+let socket = linkIO()
 
- function relinkIO() {
+ function linkIO() {
     try {
     const Osocket = io(`${root_url}/`,{
         query: {
@@ -133,11 +135,6 @@ let socket = relinkIO()
 } catch (e) {
     console.error(e)
     createErrBubble(getTime(),'error',`在尝试链接至服务端时出现问题：${e}，请重试或联系开发者。`,null,'relink')
-    try {
-    cruiseModeSwitch.style.cursor = 'not-allowed';
-    cruiseMode = !cruiseModeSwitch.checked()
-    } catch {}
-    localStorage.setItem('cruiseMode',!cruiseModeSwitch.checked);
 }
 }
 
@@ -553,19 +550,30 @@ function toggleHide(time) {
 }
 
 
-
 /**
- * `createChatBubble` 函数创建一个具有指定时间、发送者、内容、标签和元素 ID 的聊天气泡元素。
- * @param {string} time - 创建聊天气泡的时间。
- * @param {string} who - `who`参数代表聊天气泡的发送者。它可以是以下多个值的任意一个："user","assistant","system","error","letter"。
- * @param {HTMLString | string} content - `content` 参数代表聊天气泡的消息内容。它可以是包含气泡的文本消息或 HTML 内容的字符串（关于HTML是否解析，取决于"who"与"security"的值）。
- * @param {string?} tag - `tag` 参数用于指定聊天气泡的类型。它可以具有三个可能的值："plus"、"custom"或"normal"。这些值确定聊天气泡的样式，并用于在助理消息旁边显示标签。
- * @param {string?} eid - `eid` 参数是一个可选参数，表示聊天气泡的 ID。它用于唯一标识每个聊天气泡元素。如果提供，聊天气泡元素将具有指定的 ID。
- * @param {number?} chatIndex - `chatIndex`参数是一个可选参数，表示聊天气泡对应的聊天记录（chatLog）索引位置，适用于who == "user"时的编辑功能。
- * @param {boolean?} security - `security`参数是一个可选参数，如果显式的规定它，则可以设置是否使用激进或安全的创建策略，如果不规定它，则使用更安全的策略（true）
- * @returns 返回创建并附加到"chatContainer"的"chatBubble"元素。
+ * `createChatBubble` 函数创建一个具有指定时间、发送者、内容、标签和元素 ID 的聊天气泡元素，并将其自动附加至`chatContainer`容器中。
+ * @param {string} time - 创建聊天气泡的时间，应遵循`YYYY-MM-DD HH:mm:ss`的格式，如果不规定它，则默认采用调用时间。
+ * @param {string} who - `who`参数代表聊天气泡的发送者，规定该气泡的样式。它可以是以下多个值的任意一个：`user`,`assistant`,`system`,`error`,`letter`。
+ * @param {HTMLString | string} content - `content` 参数代表聊天气泡的消息内容。它可以是一个`String`或`HTMLString`（只有当`who !== "user" || security == true`时，才会解析HTMLString）。
+ * @param {string?} tag - `tag` 参数用于指定聊天气泡的标签。它可以具有三个可能的值：`plus`、`custom`或`normal`。这些值用于在助理消息旁边显示标签。
+ * @param {string?} eid - `eid` 参数是一个可选参数，表示聊天气泡的 ID。它用于唯一地标识每个聊天气泡元素。如果提供，聊天气泡元素将具有指定的 ID。
+ * 注：通常，当`who == "user"`时，eid应有前缀`prompt-`；当`who == "assistant"`时，eid应有前缀`ai-`；但这并不绝对。
+ * @param {number?} chatIndex - `chatIndex`参数是一个可选参数，表示聊天气泡对应的聊天记录（chatLog `Array`）索引位置，主要用于`who == "user"`时的编辑功能。
+ * @param {boolean | true} security - `security`参数是一个可选参数，如果显式的规定它，则可以设置是否使用激进或安全的创建策略，如果不规定它，则默认使用更安全的策略（`true`）。
+ * @param {boolean?} array - `array`参数是一个可选参数，当它为`true`时，将返回一个HTMLElementsArray，否则，返回chatBubble元素本身。
+ * @returns {HTMLElement | HTMLElementsArray} 返回创建并附加到`chatContainer`的`chatBubble`元素集合，如果`array === true`，它包括：`[
+        chatBubble,
+        chatBubbleMessage,
+        chatBubbleTime,
+        chatBubbleWho,
+        chatBubbleTag
+    ]`，否则，包括chatBubble元素本身。
  */
-function createChatBubble(time,who,content,tag,eid,chatIndex,security) { 
+function createChatBubble(time,who,content,tag,eid,chatIndex,security,array) { 
+    let chatBubbleTag = null;
+    if (!time || typeof time !== 'string') {
+        time = getTime()
+    }
     console.log(who)
     chatCount += 1
     console.log(content)
@@ -578,9 +586,7 @@ function createChatBubble(time,who,content,tag,eid,chatIndex,security) {
     const chatBubbleTime = document.createElement('p')
     const chatBubbleMessage = document.createElement('div')
     chatBubble.setAttribute('chatIndex',chatIndex)
-    if (eid) {
-        chatBubble.id = eid
-    }
+
 
     chatBubble.classList.add('chatBubble')
     chatBubble.classList.add(who)
@@ -589,7 +595,7 @@ function createChatBubble(time,who,content,tag,eid,chatIndex,security) {
     let coded = markString
     let randomId = createCode()
     if (markString.includes('<pre>')) {
-            coded = markString.replaceAll(`<pre>`,`<div class='codeRoot'><div class="preTitle"><p class="preLag preLeg${randomId}" id="preLeg${randomId}"></p>  <button class="copy-button" id="copy-button-${randomId}" title="点击复制"><span>复制</span></button></div><pre class="line-numbers">`).replaceAll(`</pre>`,'</pre></div>')
+            coded = markString.replaceAll(`<pre>`,`<div class='codeRoot'><div class="preTitle"><p class="preLag preLeg${randomId}" id="preLeg${randomId}"></p>  <button class="copy-button" id="copy-button-${randomId}" title="点击复制"><span id="copy-span-${randomId}">复制</span></button></div><pre class="line-numbers">`).replaceAll(`</pre>`,'</pre></div>')
     }
     const inner = coded
 
@@ -599,11 +605,14 @@ function createChatBubble(time,who,content,tag,eid,chatIndex,security) {
     chatBubbleTime.classList.add('chatBubbleTime')
     chatBubbleWho.classList.add('chatBubbleWho')
     chatBubbleMessage.classList.add('chatBubbleMessage')
+    if (eid) {
+        chatBubble.id = eid
+    }
     chatContainer.appendChild(chatBubble)
     chatBubble.appendChild(chatBubbleWho)
     chatBubble.appendChild(chatBubbleTime)
     if (who == 'assistant') {
-        const chatBubbleTag = document.createElement('p')
+        chatBubbleTag = document.createElement('p')
         chatBubbleTag.classList.add('chatTag')
         if (tag == 'plus') {
             chatBubbleTag.classList.add('TagPlus')
@@ -638,24 +647,26 @@ function createChatBubble(time,who,content,tag,eid,chatIndex,security) {
     } else {
         chatBubbleMessage.innerHTML = inner
     }
-    if (message.includes('[control:weather]')) {
+    if (message.includes('[control:weather]' && (who !== `user` || security == false))) {
         createWeatherCube(chatBubble)
         chatBubbleMessage.textContent = ''
         chatBubbleMessage.innerHTML = ''
     }
-    let height = Number(chatContainer.style.height.replaceAll('px','')) + chatBubble.clientHeight * 2
+    let height = Number(chatContainer.style.height.replaceAll('px','') || window.screen.availHeight) + chatBubble.scrollHeight * 2
     console.log(height)
     chatContainer.style.height = `${height}px`
     Logo.style.display = 'none'
     const preLagElements = chatBubbleMessage.getElementsByClassName(`preLeg${randomId}`)
     if (preLagElements) {
         chatBubbleMessage.querySelectorAll('pre code').forEach(el => {
-            const eid = 'C' + createCode()
+            const codeid = 'C' + createCode()
             let innerEl = el.innerHTML
             el.innerHTML = innerEl.replaceAll('<br>','\n')
-            el.parentElement.parentElement.firstElementChild.lastElementChild.setAttribute('data-clipboard-target',`#${eid}`)
-            el.parentElement.parentElement.firstElementChild.lastElementChild.setAttribute('onclick',`document.getElementById('${eid}').parentElement.parentElement.parentElement.firstElementChild.lastElementChild.firstElementChild.textContent = '成功!'`)
-            el.id = eid
+            const elabel = el.parentElement.parentElement.firstElementChild.lastElementChild
+            elabel.setAttribute('data-clipboard-target',`#${codeid}`)
+            elabel.setAttribute('onclick',`document.getElementById('label-${codeid}').textContent = '成功!'`)
+            elabel.id = `label-${codeid}`
+            el.id = codeid
             Prism.highlightElement(el);
         })
         const codeElements = chatBubbleMessage.getElementsByClassName('code-toolbar')
@@ -665,7 +676,15 @@ function createChatBubble(time,who,content,tag,eid,chatIndex,security) {
         }
     };
         
-    
+    if (array) 
+    return [
+        chatBubble,
+        chatBubbleMessage,
+        chatBubbleTime,
+        chatBubbleWho,
+        chatBubbleTag ?? null
+    ];
+    else 
     return chatBubble
 }
 let oldMessageOfEdit = ``
@@ -837,13 +856,12 @@ function getTime(object) {
   /**
    * 函数“refreshScreen”重置聊天屏幕，清除聊天日志，设置输入占位符文本，显示徽标，启用发送消息，更新令牌计数，滚动到页面顶部，启动时间间隔，并可选择重新链接IO。
    * @param relink - `relink`
-   * 参数是一个布尔值，指示函数是否应该执行重新链接操作。如果“relink”为“true”，该函数将调用“relinkIO()”函数。如果“relink”为“false”或未提供，则不。
+   * 参数是一个布尔值，指示函数是否应该执行重新链接操作。如果“relink”为“true”，该函数将调用“linkIO()”函数。如果“relink”为“false”或未提供，则不。
    * @param delFile - `delFile`参数是一个布尔值，指示函数是否要删除现在的会话存档，如果true则删除，false则不删除
    */
   function refreshScreen(relink,delFile) {
     chatLog = []
     chatContainer.innerHTML = ''
-    input.setAttribute('placeholder','滴滴滴…电波接收中——键入字符以唤起零…')
     Logo.style.display = 'block'
     canSend = true
     if (plus) {
@@ -858,19 +876,24 @@ function getTime(object) {
         behavior: "smooth"
     });
     timeTitle = true
-    body.style.height = ''
+    chatContainer.style.height = '300px'
     startTimeInterval()
     if (relink) {
-    relinkIO()
+    linkIO()
     }
     document.getElementById('nowTitle').textContent = `新会话`
     const nowOpid = document.getElementById('saveNow').getAttribute('outputId')
+    document.getElementById('saveNow').removeAttribute('readsaves')
+    document.getElementById('saveNow').setAttribute('draggable','false')
     if (nowOpid && delFile) {
         window.api.delSaveFile(nowOpid)
-        document.getElementById('saveNow').setAttribute('outputId','')
     }
+    document.getElementById('saveNow').setAttribute('outputId','')
     document.getElementById('saveBtn').disabled = true
     document.getElementById('createBtn').disabled = true
+    document.getElementById('refreshIcon').classList.add('icon-ic_Refresh') 
+    document.getElementById('refreshIcon').classList.remove('icon-shanchu-delete') 
+
   }
 
   function sockets(socket) {
@@ -965,7 +988,7 @@ socket.on(`clearTempAccess`, (arg) => {
 
 socket.on(`PlayersWarning`, (arg) => {
     showLoadLabel(`重复登录，已终止链接！`)
-    createChatBubble(getTime(),`error`,`你的ID在${arg}个不同设备（或你的不同浏览器页面）上被登录，为双方安全与利益着想，现已掐停所有设备的链接，请刷新会话重试。`)
+    createErrBubble(getTime(),`error`,`你的ID在${arg}个不同设备（或你的不同浏览器页面）上被登录，为双方安全与利益着想，现已掐停所有设备的链接，请刷新会话重试。`,null,'relink')
     canSend = false
 });
     
@@ -982,8 +1005,7 @@ socket.on("connect", () => {
     netStauts.style.color = `rgba(242,242,242,0.7)`
     console.log(`链接成功！`)
     try {
-        cruiseModeSwitch.disabled = false;
-        cruiseModeSwitchLabel.style.cursor = 'pointer';
+        releasingOptions()        
     } catch {}
   });
 
@@ -992,8 +1014,7 @@ socket.on("connect", () => {
     netStauts.style.color = `rgba(242,242,0,0.7)`
     console.log(`链接终止！`)
     try {
-        cruiseModeSwitch.disabled = true;
-        cruiseModeSwitchLabel.style.cursor = 'wait';
+        lockOptions()
     } catch {}
   });
 
@@ -1002,15 +1023,14 @@ socket.on("connect", () => {
     netStauts.style.color = `rgba(242,0,0,0.7)`
     console.log(`链接丢失！`)
     try {
-        cruiseModeSwitch.disabled = true;
-        cruiseModeSwitchLabel.style.cursor = 'not-allowed';
+        lockOptions()
     } catch {}
   });
 
   window.addEventListener('beforeunload', function (event) {
     socket.disconnect();
-    if (boolean[this.localStorage.getItem('saveWhenLeft') || 'false'] && !document.getElementById('saveNow').getAttribute('readSaves')) {
-        saveFile()
+    if (boolean[localStorage.getItem('saveWhenLeft') || 'false'] && !document.getElementById('saveNow').getAttribute('readSaves')) {
+        saveFile(false,`[自动保存] `)
     }
 })
 
@@ -1023,9 +1043,9 @@ function checkDoc() {
     const docVersion = localStorage.getItem("docVersion")
     if (docVersion < version) {
         let id = `C${createCode()}`
-        const chatBubble = createChatBubble(getTime(),'system',`Hello! 我们的使用声明进行了调整与升级，或者你这是第一次打开，请戳→<a style='text-decoration:underline;' href="./doc.html">显示使用声明</a><br>然后！继续使用 ZERO AI 服务将被视为同意使用声明。<br>悄咪咪告诉你！这条系统消息不会被 AI 视作会话记录的一部分，当然如果你看它不爽也可以直接点下方按钮删掉。`)
-        chatBubble.id = id
-        chatBubble.innerHTML += `<button class="btnInChat" style="margin-top:10px" id="" onclick="refreshScreen()">知道了呢！ <span class="iconfont icon-sure closeHideBtn"></span></button>`
+        const chatBubble = createChatBubble(getTime(),'system',`Hello! 我们的使用声明进行了调整与升级，或者你这是第一次打开，请戳→<a style='text-decoration:underline;' href="./doc.html">显示使用声明</a><br>然后！继续使用 ZERO AI 服务将被视为同意使用声明。<br>悄咪咪告诉你！这条系统消息不会被 AI 视作会话记录的一部分，当然如果你看它不爽也可以直接点下方按钮删掉。`,null,null,null,false,true)
+        chatBubble[0].id = id
+        chatBubble[1].appendChild(createFunctionButton(null,'',`refreshScreen()`,`知道了呢！ <span class="iconfont icon-sure closeHideBtn"></span>`))
         localStorage.setItem("docVersion",version)
     }
 }
@@ -1050,7 +1070,7 @@ checkDoc()
 }
 async function checkACCESS() {
         if (!FreeAPIapply) {
-            getACCESS('Login',true)
+            getACCESS('Login',true,true)
             .then (() => {
                 testPlusMode()
             })
@@ -1068,10 +1088,11 @@ function createCuid() {
  * 函数“getACCESS”是一个异步函数，它将 POST 请求发送到服务器端点以检索访问令牌和其他信息，然后根据响应执行各种操作。
  * @param message - “message”参数是一个可选参数，表示要随请求一起发送的消息。如果没有提供消息，它将被设置为“null”。
  * @param UG - 参数UG是一个布尔值，决定是否显示用户组(UG)信息。如果 UG 为 true，该函数将根据 localStorage 中存储的 plusPermission 和 think
- * 值显示用户组信息。如果 UG 为 false，该函数将不会显示用户
+ * 值显示用户组信息。如果 UG 为 false，该函数将不会将用户信息显示至菜单中。
+ * @param releasingOption - 这一个布尔值，决定是否将选项释放，一般来说，在整个程序生命周期中只调用一次。
  * @returns 一个 Promise 对象。
  */
-async function getACCESS(message,UG) {
+async function getACCESS(message,UG,releasingOption) {
     return new Promise(async (resolve,rejects) => {
         let config = {
             method: 'post',
@@ -1137,6 +1158,12 @@ async function getACCESS(message,UG) {
                 }
                 plusPermission = res.plus
                 resolve(res.plus || false)
+                if (releasingOption) {
+                    releasingOptions()
+                }
+                plusModeSwitch.disabled = !res.plus;
+                cruiseModeSwitch.disabled = !res.plus;
+                thinkModeSwitch.disabled = !res.plus;
             }).catch((err) => {
                 rejects()
                 console.error(`upload info error:${err}`)
@@ -1144,7 +1171,7 @@ async function getACCESS(message,UG) {
             })
 })}
 /**
- * 函数“showUG”显示用户的会员资格状态和到期日期，并启用按钮以在用户具有 Plus 会员资格时显示警报消息。
+ * 函数“showUG”显示用户的会员资格状态和到期日期，并启用按钮以在用户具有 Plus 会员资格时显示剩余时间。
  * @param plus - 一个布尔值，指示用户是否具有“plus”会员资格。
  */
 function showUG(plus) {
@@ -1178,12 +1205,25 @@ function showUGAlert(message) {
     }, 10000);
 }
 
+const options = document.getElementById('select-container').getElementsByClassName('option')
+const selectOptions = Array.from(options)
+function releasingOptions() {
 
+    selectOptions.forEach(option => {
+        option.classList.remove('option')
+    })
+    document.getElementById('lockOptions').classList.add('notEnabled')
+}
 
-
+function lockOptions () {
+    selectOptions.forEach(option => {
+        option.classList.add('option')
+    })
+document.getElementById('lockOptions').classList.remove('notEnabled')
+}
     /**
      * 函数“getClientInfo()”收集各种设备和浏览器信息以进行验证。
-     * @returns 函数“getClientInfo()”返回一个对象，其中包含有关客户端设备和环境的各种信息。返回的对象包含以下属性：
+     * @returns 函数“getClientInfo()”返回一个对象，其中包含有关客户端设备和环境的各种信息。
      */
     async function getClientInfo() {
         showLoadLabel('收集用于验证的设备数据……')
@@ -1215,6 +1255,7 @@ function showUGAlert(message) {
         showLoadLabel('收集数据完成……')
         return {
           mainData:mainData, // 主程序提供的数据以及clientKey
+          cruise: true, // 标记为cruise客户端
           canvas:canvasFingerprint, // canva指纹
           userAgent:userAgent, // ua
           WebGL: { // webGL信息
@@ -1307,12 +1348,12 @@ async function outputChat() {
           chat:chatLog,
           createBy:localStorage.getItem('id'),
           tokens:token,
-          height:body.style.height
+          height:chatContainer.style.height
        }
     }
     const download = (filename, Url) => {
         let a = document.createElement('a'); 
-        a.style = 'display: none'; // 创建一个隐藏的a标签
+        a.style.display = 'none'; // 创建一个隐藏的a标签
         a.download = filename;
         a.href = Url;
         document.body.appendChild(a);
@@ -1342,6 +1383,8 @@ async function inputChat(fileData) {
     reader.onload = function(e) {
       try {
         refreshScreen()
+        document.getElementById('refreshIcon').classList.remove('icon-ic_Refresh') 
+        document.getElementById('refreshIcon').classList.add('icon-shanchu-delete') 
         const jsonContent = JSON.parse(e.target.result);
         timeTitle = false   
         chatContainer.innerHTML = ''
@@ -1349,7 +1392,7 @@ async function inputChat(fileData) {
         // 在这里可以处理解析后的JSON内容
         chatLog = jsonContent.data.chat
         if (!jsonContent.data.cruise) {
-        createChatBubble(getTime(),'system',`以下内容为用户ID=${jsonContent.data.createBy}于${jsonContent.outputTime}保存的会话记录。<br>请不要点击任何会话中的超链接或任何可疑的可点击元素。我们不能保证该会话记录是否已被恶意窜改。<br>如有上述情况，请及时与我们反馈（qwxl@zero-ai.online）。`)
+        createChatBubble(getTime(),'system',`以下内容为用户 I#${jsonContent.data.createBy} 于 ${jsonContent.outputTime} 保存的会话记录。<br>请不要点击任何会话中的超链接或任何可疑的可点击元素。我们不能保证该会话记录是否已被恶意窜改。<br>如有上述情况，请及时与我们反馈（qwxl@zero-ai.online）。`)
         document.getElementById('nowTitle').textContent = `[存档] *来自网页端*`    
         } else {
             createChatBubble(getTime(),'system',`存档备注：${jsonContent.title}<br>存档日期：${jsonContent.outputTime}<br>存档ID：${jsonContent.outputID}<br>对话条数：${jsonContent.data.chat.length}`)
@@ -1408,12 +1451,36 @@ function consoleWarn() {
     }, 1000);
 }
 
+
+/**
+ * 函数`createErrBubble`将提供的参数添加功能性按钮后转发至`createChatBubble`函数。
+ * @param {string?} time - `time` 参数是创建的时间，这与`createChatBubble`的同名参数相同。
+ * @param {string} who - `who` 参数是创建的身份，这与`createChatBubble`的同名参数相同。
+ * @param {string} content - `content` 参数是创建的内容，这与`createChatBubble`的同名参数相同。
+ * @param {string?} tag - `tag` 参数是创建的标签，这与`createChatBubble`的同名参数相同。
+ * @param {string} type - `type`参数用于确定当点击气泡内按钮时要采取的操作。它可以具有三个可能的值：`resend`、`access`、`relink`或`restart`。
+ * 
+ * 注：单次会话中只能存在一个`type == 'restart'`的功能气泡，新添加的`restart`功能气泡将替换旧的并处在最新位置。
+ * @returns 返回创建并附加到`chatContainer`的`chatBubble`元素。
+ */
 function createErrBubble(time,who,content,tag,type) {
     const randomId = 'E' + createCode();
-    const button = `<br><button class="btnInChat" style="background-color:rgb(130,50,50);margin-top:20px;padding:10px" id="btnHide-${randomId}" onclick="reSend('${randomId}','${type || 'all'}')">重试 <span class="iconfont icon-ic_Refresh closeHideBtn"></span></button>`
-    const errBubble = createChatBubble(time,who,content + button,tag)
-    errBubble.id = randomId
-    return randomId
+    let bubble
+    if (type !== 'restart') {
+        const button = createFunctionButton('err',randomId,`reSend('${randomId}','${type || 'all'}')`,`重试 <span class="iconfont icon-ic_Refresh closeHideBtn"></span>`)
+        const errBubble = createChatBubble(time,who,content,tag,null,null,false,true)
+        errBubble.id = randomId
+        errBubble[1].appendChild(button)
+        bubble = errBubble
+    } else {
+        const button = createFunctionButton('err',randomId,`restart()`,`重启 <span class="iconfont icon-ic_Refresh closeHideBtn"></span>`)
+        if (document.getElementById('restartWarning')) {
+            chatContainer.removeChild(document.getElementById('restartWarning'))
+        }
+        bubble = createChatBubble(time,who,content,tag,`restartWarning`,null,false,true)
+        bubble[1].appendChild(button)
+        }
+    return bubble
 }
 
 
@@ -1421,7 +1488,7 @@ function createErrBubble(time,who,content,tag,type) {
 /**
  * 函数“reSend”是 JavaScript 中的异步函数，它接受两个参数“errorBubbleId”和“type”，并根据“type”的值执行不同的操作。
  * @param errorBubbleId - `errorBubbleId` 参数是需要从聊天容器中删除的错误气泡的 ID。
- * @param type - “type”参数用于确定“reSend”函数中要采取的操作。它可以具有三个可能的值：“重新发送”、“访问”或“重新链接”。
+ * @param type - “type”参数用于确定“reSend”函数中要采取的操作。它可以具有三个可能的值：`resend`、`access`或`relink`。
  */
 async function reSend(errorBubbleId,type) {
     if (type == 'resend') {
@@ -1435,9 +1502,9 @@ async function reSend(errorBubbleId,type) {
      } catch {}
         })
     } else if (type == 'relink') {
-        relinkIO()
+        linkIO()
     } else {
-        relinkIO()
+        linkIO()
         getACCESS(`重新申请`)
         .then((plus) => {
         inputByUser()
@@ -1445,6 +1512,9 @@ async function reSend(errorBubbleId,type) {
     }
     if (errorBubbleId) {
     chatContainer.removeChild(document.getElementById(errorBubbleId))
+    }
+    if (chatContainer.childNodes.length == 0) {
+        refreshScreen(false,false)
     }
 }
 
@@ -1495,7 +1565,7 @@ body.addEventListener('dragleave', function(e) {
 
 
 
-    function saveFile(noDelOld) {
+    function saveFile(noDelOld,prefix = '') {
         const ele = document.getElementById('saveNow')
         if (chatLog.length !== 0 && !ele.getAttribute('readSaves')) { 
         const outputID = `${createCode()}${createCode()}`
@@ -1504,7 +1574,7 @@ body.addEventListener('dragleave', function(e) {
         nowTitle.textContent = chatLog[0].content
         }
         let data = {
-            title: ele.querySelector('p')?.textContent ,
+            title: prefix + ele.querySelector('p')?.textContent || "无名称会话",
             outputTime: getTime(),
             outputID: outputID,
             data: {
@@ -1513,15 +1583,17 @@ body.addEventListener('dragleave', function(e) {
                 chat:chatLog,
                 createBy:localStorage.getItem('id'),
                 tokens:token,
-                height:body.style.height
+                height:chatContainer.style.height
            }
         }
-
+        console.log(ele.getAttribute("outputId"))
         if (ele.getAttribute("outputId") && !noDelOld) {
+            console.log('try to delete old file')
             window.api.saveFile(`${outputID}.zero`,data,ele.getAttribute("outputId"))
             ele.setAttribute("outputId",outputID)
         } else {
-            window.api.saveFile(`${outputID}.zero`,data,null,!noDelOld)
+            console.log('not delete old file')
+            window.api.saveFile(`${outputID}.zero`,data,null,true)
             ele.setAttribute("outputId",outputID)
         }
         return [outputID,ele.querySelector('p')?.textContent]
@@ -1582,7 +1654,6 @@ function addSaveToList(title,opid,time) {
         th.setAttribute('title',time)
         tr.appendChild(th);
 
-        // 最后将创建好的 `tr` 元素添加到DOM中相应位置。例如：假设有ID为'tableBody'的<tbody>标签，则可以如下操作：
         const histroyLine = document.getElementById('histroyLine')
         histroyLine.insertAdjacentElement('afterend',tr)
         return th
@@ -1593,7 +1664,7 @@ async function getSavesData() {
 const data = await window.api.getSavesData()
 for (i=0;i<data.length;i++) {
     console.log(data[i])
-    addSaveToList(data[i].title.slice(0,9),data[i].outputID,data[i].outputTime)
+    addSaveToList(data[i].title,data[i].outputID,data[i].outputTime)
   }
 document.getElementById('histroyCount').textContent = data.length
 const saves = document.querySelectorAll('.save')
@@ -1665,6 +1736,7 @@ function editSaveTitle(opid) {
 const sttDevice = document.getElementById('sttDevice') // left
 const sttType = document.getElementById('sttType') // center
 const sttInfo = document.getElementById('sttInfo') // right
+const sttProcessInfo = document.getElementById('sttProcessInfo') // all
 let sttStat = false // 一个简单的全局变量，用于指示stt是否可用
 let useStt = false // 同上，用于指示stt是否在工作状态（包括聆听时）
 if (boolean[localStorage.sttp ?? "true"]) {
@@ -1676,12 +1748,14 @@ window.api.sttProcess((object) => {
             break;
         case "connection":
             if (object.content) {
-            sttInfo.textContent = `连接成功`
+            sttInfo.textContent = `链接正常`
             sttType.textContent = `闲置中...按住Tab键发起语音输入`
+            sttInfo.style.color = ``
             sttStat = true
             } else {
                 sttInfo.textContent = `链接丢失`
                 sttInfo.style.color = `red`
+                sttStat = false
             }
             break;
         case "error":
@@ -1701,6 +1775,7 @@ window.api.sttProcess((object) => {
             inputButton.classList.remove('cantSend');
             tempSttBubble?.remove()
             sttType.textContent = `闲置中...按住Tab发起语音输入`
+            sttProcessInfo.style.color = ``
             useStt = false
             break
         default:
@@ -1717,6 +1792,7 @@ function startSound2Text() {
     input.blur()
     window.api.startStt()
     useStt = true
+    sttProcessInfo.style.color = `rgb(255,255,255)`
     sttType.textContent = `聆听中...释放开始处理`
     tempSttBubble = createChatBubble('正在聆听...','user',"<div class=\"chatLoader\"></div>",null,null,null,false)
 }
@@ -1726,7 +1802,9 @@ function stopSound2Text() {
     if (sttStat && !canSend && useStt) {
         input.blur()
         window.api.stopStt()
+    
         sttType.textContent = `处理中...请稍后`
+        sttProcessInfo.style.color = `rgba(255,255,255,0.2)`
     }
 }
 let tabPressTimer;
@@ -1756,8 +1834,14 @@ document.addEventListener('keyup', function(event) {
   });
 
 } else {
-    document.getElementById('sttProcessInfo').textContent = `|　语音输入模块已关闭　|`
+    sttProcessInfo.textContent = `|　语音输入模块已关闭　|`
 }
+
+document.addEventListener('keyup', function(event) {
+    if (event.key === 'Escape') {
+        window.api.hideWindow()
+    }
+  });
 
 document.addEventListener('keypress', function(event) {
     const focusedElement = document.activeElement;
@@ -1799,3 +1883,37 @@ window.api.updateListener((object) => {
             break;
     }
 })
+
+
+
+
+
+
+
+function createFunctionButton(type,randomId,onclick,content) {
+    // 创建button元素
+    var button = document.createElement('button');
+
+    // 设置button样式和属性
+    button.className = 'btnInChat';
+    switch (type) {
+        case `err`:
+            button.style.backgroundColor = 'rgb(130,50,50)';
+            button.style.marginTop = '20px';
+            button.style.padding = '10px';
+            break;
+    
+        default:
+            button.style.marginTop = '20px';
+            button.style.padding = '10px';
+            break;
+    }
+
+      // 设置onclick事件处理器。注意：这里简化了原始字符串中`${randomId}`和`${type || 'all'}`部分。
+      button.setAttribute('onclick', onclick);
+
+      // 设置按钮内部文本及图标（这里使用textContent简化了原始html结构）
+      button.innerHTML = content;
+
+    return button
+}

@@ -2,7 +2,7 @@
  * @Author: 秋晚夕落 qwxl@zero-ai.online
  * @Date: 2024-02-01 21:22:51
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-14 21:57:53
+ * @LastEditTime: 2024-03-01 18:07:43
  * @FilePath: \cruise-client\app\index.html
 -->
 <html>
@@ -13,8 +13,6 @@
     <link rel="stylesheet" href="iconfont.css">
     <link rel="preload" as="style" onload="this.rel='stylesheet'" href="./lib/prism.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <link rel="icon" href="./favicon.ico">
   </head>
 <body id="body">
 
@@ -55,7 +53,7 @@ function sleep(ms) {
     <button class="input-button" id="input-button" onclick="onclickButton()"><span class="iconfont icon-send"></span>
     </button>
   </div>
-  <p class="named" id="named"><span id="named-name"></span> Version Cruise <span id="versionSpan"></span> | <a onclick=" relinkIO()" id="netStauts" title="点击重新连接">正在链接</a>
+  <p class="named" id="named"><span id="named-name"></span> Version Cruise <span id="versionSpan"></span> | <a onclick="linkIO()" id="netStauts" title="点击重新连接">正在链接</a>
     <br><a href="https://docs.qq.com/form/page/DWVVReWhiempoUXZq" class="named" id="feedback">问题反馈</a>
     <span id="download-apk"> <a href="./aketa.zeroai.apk" download="ZeroAI.apk" class="named" >下载Android手机端</a></span></p></div>
     
@@ -106,12 +104,22 @@ function sleep(ms) {
 
 <!-- 下拉菜单 -->
 <div id="select-container" class="select-container" style="display: none;">
+  <div class="lockOptions" id="lockOptions">
+    <div class="loaderAnimation">
+    <div class="spinnerLoader"></div>
+    <div class="spinnerLoader"></div>
+    <div class="spinnerLoader"></div>
+    <div class="spinnerLoader"></div>
+    <div class="spinnerLoader"></div>
+
+    </div>
+  </div>
   <table class="select-table" rule="none">
     <colgroup>
       <col style="width: 80%;">
       <col>
     </colgroup>
-  <tr>
+  <tr class="option">
     <th>
       <div class="th-label">Plus 模式</div>
 
@@ -123,7 +131,7 @@ function sleep(ms) {
       </div>
     </th>
   </tr>
-  <tr>
+  <tr class="option">
     <th>
       <div class="th-label">深思熟虑</div>
 
@@ -135,7 +143,7 @@ function sleep(ms) {
       </div>
     </th>
   </tr>
-  <tr>
+  <tr class="option">
     <th>
       <div class="th-label coloredText">巡航模式</div>
 
@@ -147,7 +155,7 @@ function sleep(ms) {
       </div>
     </th>
   </tr>
-  <tr>
+  <tr class="option">
     <th>
       <div class="th-label">退出时保存</div>
     </th>
@@ -158,7 +166,7 @@ function sleep(ms) {
       </div>
     </th>
   </tr>
-  <tr>
+  <tr class="option">
     <th>
       <div class="th-label">语音输入</div>
     </th>
@@ -195,25 +203,6 @@ function sleep(ms) {
   </tr>
 
   <tr>
-    <th colspan="2"><hr></th>
-  </tr>
-  <tr class="output-inputChat">
-    <th>
-      <div class="th-label">导出记录</div> 
-    </th>
-    <th>
-      <button class="small-button" id="" onclick="outputChat();toggleSelectMenu()"><span class="iconfont icon-save btn-icon" id=""></span></button>
-    </th>
-  </tr>
-  <tr class="output-inputChat">
-    <th>
-      <div class="th-label">导入记录</div> 
-    </th>
-    <th>
-      <label for="chatInput" class="small-button"><span class="iconfont icon-catalog-download btn-icon" id=""></span></label>
-    </th>
-  </tr>
-  <tr class="output-inputChat">
     <th colspan="2"><hr></th>
   </tr>
   <tr>
@@ -269,8 +258,8 @@ function sleep(ms) {
     <tr>
       <th style="display: grid; grid-template-columns: 1fr 1fr 1fr;"  class="bubble">
         <button class="small-button" id="createBtn" onclick="addSaveFile()" title="创建一个新会话，并自动保存当前会话" disabled><span class="iconfont icon-add btn-icon"></span></button>
-        <button class="small-button" id="saveBtn" onclick="saveFile()" title="保存当前会话" disabled><span class="iconfont icon-save btn-icon"></span></button>
-        <button class="small-button" id="" onclick="refreshScreen(false,true)" title="刷新当前会话，但不会自动保存"><span class="iconfont icon-ic_Refresh btn-icon"></span></button>
+        <button class="small-button" id="saveBtn" onclick="saveFile()" title="保存当前会话，然后什么都不做" disabled><span class="iconfont icon-save btn-icon"></span></button>
+        <button class="small-button" id="refreshBtn" onclick="refreshScreen(false,true)" title="舍弃当前会话内容，不会保存"><span class="iconfont icon-ic_Refresh btn-icon" id="refreshIcon"></span></button>
       </th>
     </tr>
     <tr>

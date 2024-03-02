@@ -16,12 +16,19 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
   function setPlusModeSwitch(isEnabled) {
     // 如果 isEnabled 为 true，则设置为可选择
     plusModeSwitch.disabled = !isEnabled;
-    cruiseModeSwitch.disabled = !isEnabled
+    cruiseModeSwitch.disabled = !isEnabled;
+    
     if (isEnabled && plus) {
     plusModeSwitch.checked = true;
     } else {
       plusModeSwitch.checked = false
     }
+
+    if (isEnabled && cruiseMode) {
+      cruiseModeSwitch.checked = true;
+      } else {
+        cruiseModeSwitch.checked = false
+      }
 
     if (plusModeSwitch.checked) {
       logo.src = './AKETA SPACE GOLD.webp'
@@ -31,8 +38,8 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
       logo.src = './AKETA SPACE-Fixed.webp'
     }
     tokens.textContent = `Tokens:0/${maxTokens}`  
-  }
-  
+    console.log(`获取 plus 模式权限:${isEnabled}`)
+      
   thinkModeSwitch.addEventListener("change",(event) => {
     if (thinkModeSwitch.checked !== think) {
       refreshScreen()
@@ -43,18 +50,33 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
   })
 
   cruiseModeSwitch.addEventListener("change", async (event) => {
+    if (plusPermission) {
     if (cruiseModeSwitch.checked !== cruiseMode) {
       cruiseMode = cruiseModeSwitch.checked;
       localStorage.setItem('cruiseMode',cruiseModeSwitch.checked);
-      cruiseModeSwitch.disabled = true;
-      cruiseModeSwitchLabel.style.cursor = 'wait';
+      cruiseModeSwitch.disabled = !plusPermission;
       console.log(`设置巡航模式:${cruiseModeSwitch.checked}`);
-      relinkIO()
-
-
+     linkIO
     }
+  } else {
+    cruiseModeSwitch.disabled = true
+    cruiseModeSwitch.checked = false
+    cruiseMode = false
+    localStorage.setItem('cruiseMode',false)
+  }
     
   })
+  
+  plusModeSwitch.addEventListener("change", (event) => {
+    testPlusMode() 
+  });
+
+  leftSaveModeSwitch.addEventListener("change", (event) => {
+    ToggleleftSaveMode()
+  })
+
+  }
+
 /**
  * 函数“testPlusMode”用于处理切换加模式开关时的逻辑和行为。
  */
@@ -89,21 +111,9 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
   tokens.textContent = `Tokens:0/${maxTokens}`
   } 
 
-  plusModeSwitch.addEventListener("change", (event) => {
-    testPlusMode() 
-  });
-
-  leftSaveModeSwitch.addEventListener("change", (event) => {
-    ToggleleftSaveMode()
-  })
-
   sttModeSwitch.addEventListener("change", (event) => {
     localStorage.setItem('sttp',sttModeSwitch.checked)
-    if (!document.getElementById('restartWarning')) {
-    createChatBubble(getTime(),'system',`重启 Cruise 以应用该操作。<br><button class="btnInChat" style="margin-top:20px;padding:10px" id="" onclick="restart()">重启 <span class="iconfont icon-ic_Refresh closeHideBtn"></span></button>`,null,'restartWarning')
-    } else {{
-      chatContainer.appendChild(document.getElementById('restartWarning'))
-    }}
+      createErrBubble(getTime(),'system',`重启以应用该操作。`,null,'restart')
   })
 
   const selectContainer = document.getElementById('select-container')

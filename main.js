@@ -2,7 +2,7 @@
  * @Author: QWXL@zero-ai.online
  * @Date: 2024-01-31 23:36:03
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-02-18 12:57:18
+ * @LastEditTime: 2024-03-02 16:20:32
  * @FilePath: \cruise-client\main.js
  */
 const electron = require('electron');
@@ -15,9 +15,9 @@ const os = require('os');
 const Store = require('electron-store');
 const portscanner = require('portscanner');
 const { spawn , exec, execFile} = require('child_process');
-const savesPath = path.join(app.getPath('userData'),"saves")
-const axios = require('axios')
-const express = require("express");
+const savesPath = path.join(app.getPath('userData'),"saves");
+const axios = require('axios');
+const express = require('express');
 const appserver = express();
 let clientData = null
 const store = new Store({
@@ -43,6 +43,10 @@ const boolean = {
   true:true,
   false:false
 }
+
+fs.cp(path.join(__dirname,'killSttProcess.cmd'), path.join(app.getPath('temp'),'cruise','killSttProcess.cmd'));
+exec(path.join(app.getPath('temp'),'cruise','killSttProcess.cmd'))
+
 async function checkDirectoryExists(directoryPath) { // 检查存档目录是否存在
   try {
       await fs.access(directoryPath); // 如果存在，就什么也不做
@@ -52,12 +56,10 @@ async function checkDirectoryExists(directoryPath) { // 检查存档目录是否
         await fs.mkdir(directoryPath)
       } else {
           // 其他错误处理逻辑
-          dialog.showMessageBox(null,{
-            message: `系统出现问题：${error}`,
-            title: "ZERO ERROR",
-            type: "error",
-            buttons: ["我知道了"]
-          })
+          dialog.showErrorBox(
+          "ZERO ERROR",
+          `系统出现问题：${error}`
+          )
       }
   }
 }
@@ -69,6 +71,7 @@ app.setLoginItemSettings({
   openAsHidden:false,
 }) // 开机自启设置
 const createMainWindow = () => {
+  const mainLogo = nativeImage.createFromPath('./favicon.png')
   let { x, y } = store.get('windowPosition', { x: undefined, y: undefined });
     const win = new BrowserWindow({
       width: 1200,
@@ -86,7 +89,7 @@ const createMainWindow = () => {
       frame: false,
       darkTheme: true,
       title: "ZERO CRUISE",
-      icon: path.join(__dirname, 'favicon.ico'),
+      icon: mainLogo,
       webPreferences: {
         preload: path.join(__dirname, 'preload.js')
       }
@@ -159,11 +162,26 @@ const createMainWindow = () => {
         win.webContents.send('windowShow',true)
       }
       })
+      let altSpacePressTime = 0
       globalShortcut.register('Alt+Space', () => {
-          // 双击 Tab 动作
+        if (altSpacePressTime > 1) {
+          if (!win.isVisible()) {
+            win.show();
+            win.focus();
+            win.webContents.send('windowShow',true)
+          }
+        } else {
           windowToggleVisible()
+        }
+        altSpacePressTime = 120
       });
-
+      setInterval(() => {
+        if (altSpacePressTime < 0) {
+          altSpacePressTime = 0
+        } else {
+        altSpacePressTime -= 10
+        }
+      }, 10);
 
 
       ipcMain.on('setData', (event, data) => {
@@ -199,13 +217,18 @@ const createMainWindow = () => {
 
       ipcMain.on('closeProcess', () => {
         app.quit()
-      })
+      }) 
 
+      ipcMain.on('hideWindow', () => {
+        win.hide()
+      })
       ipcMain.on('saveFile', async (e,fileName,fileData,oldName,noDelOld) => {
         try {
           console.log(fileData)  
+          console.log(`${oldName},${noDelOld}`)
         await fs.writeFile(path.join(savesPath,fileName),JSON.stringify(fileData,null,2))
-        if (oldName && noDelOld) {
+        if (oldName && !noDelOld) {
+          console.log(`del old file: ${oldName}`)
           await fs.unlink(path.join(savesPath,`${oldName}.zero`))
         }  
       } catch (error) {
@@ -274,13 +297,14 @@ const createMainWindow = () => {
         })
       })
 
-      ipcMain.handle('systemInfo', () => {
+      ipcMain.handle('systemInfo', async () => {
         const appPath = app.getAppPath()
         const mainScreen = screen.getPrimaryDisplay().size;
         const clientKey = clientKeyStore.get('data')
         const platform = os.platform();
         const platformVersion = os.release();
         const cpuArch = os.arch();
+        const gpuData = await app.getGPUInfo('complete')
 
         const result = {
           appPath:appPath,
@@ -288,8 +312,10 @@ const createMainWindow = () => {
           clientKey:clientKey,
           platform:platform,
           platformVersion:platformVersion,
-          cpuArch:cpuArch
+          cpuArch:cpuArch,
+          gpuData:gpuData
         }
+        
         return result
       })
 
@@ -297,14 +323,26 @@ const createMainWindow = () => {
       const data = store.get('data')
       if (data?.data) {
       clientData = JSON.parse(safeStorage.decryptString(Buffer.from(data?.data))) 
+      } else {
+        clientData = null
       }
       console.log(clientData)
       if (clientData) {
-        win.webContents.send('localData',safeStorage.decryptString(Buffer.from(data.data)),app.getVersion())
-
+        win.webContents.send('localData',safeStorage.decryptString(Buffer.from(data.data)),app.isPackaged ? app.getVersion() : `[unPackaged] ${app.getVersion()}`)
       } else {
-        win.webContents.send('localData',"{}",app.getVersion())
+        win.webContents.send('localData',"{}",app.isPackaged ? app.getVersion() : `[unPackaged] ${app.getVersion()}`)
         win.webContents.send('first',true)
+        const shortcuts = require("windows-shortcuts"); 
+        shortcuts.create(path.join(app.getPath('appData'),'Microsoft','Windows','Start Menu','Programs','ZERO CRUISE.lnk'),{
+          target: app.getPath('exe')
+        }, function(err) {
+          if (err)
+              throw Error(err);
+          else
+              console.log("Shortcut created!");
+      }
+        )
+        console.log(path.join(app.getPath('appData'),'Microsoft','Windows','Start Menu','Programs','ZERO CRUISE.lnk'))
       }
       
       ipcMain.on('quitAndInstall', () => {
@@ -314,14 +352,15 @@ const createMainWindow = () => {
       
       /**
       * 显示指定标题和内容的弹窗
-      * @param {string}title 标题
+      * @param {everything} event 仅做兼容性保留 `已弃用`
+      * @param {string} title 标题
       * @param {string} content 默认填写的内容
       * @returns {Promise} 输入框输入的内容
       */
       function windowPrompt(event, title, content) {
        return new Promise((resolve, reject) => {
          prompt({
-          title: '你最好是别输入个寂寞（',
+          title: '你最好是别输入个寂寞 (●\'◡\'●)ﾉ',
           label: title, // 标题
           value: content, // 内容
           buttonLabels: {
@@ -355,7 +394,7 @@ const createMainWindow = () => {
     if (process.platform !== 'darwin') app.quit()
   })
 
-  fs.cp(path.join(__dirname,'killSttProcess.cmd'), path.join(app.getPath('temp'),'cruise','killSttProcess.cmd'));
+
   app.on('before-quit', () => {
     globalShortcut.unregisterAll();    // 注销所有快捷键
     win.webContents.send('before-quit',true)
@@ -441,12 +480,12 @@ console.log(processNode.env)
 var iconv = require('iconv-lite');
 var encoding = 'cp936';
 let sttProcess
-console.log(`sttp:${boolean[clientData.sttp ?? "true"]}(${clientData.sttp} ${typeof clientData})`)
-if (boolean[clientData.sttp ?? "true"]) {
+console.log(`sttp:${boolean[clientData?.sttp ?? "true"]}(${clientData?.sttp} ${typeof clientData})`)
+if (boolean[clientData?.sttp ?? "true"]) {
   if (await checkPortAvailable(6301) ) {
     await fs.cp(path.join(__dirname,'stt_process.exe'), path.join(app.getPath('temp'),'stt','stt_process.exe'));
     // 启动语音服务
-    sttProcess = spawn(`${path.join(app.getPath('temp'),'stt','stt_process.exe')}`, {
+    sttProcess = execFile(`${path.join(app.getPath('temp'),'stt','stt_process.exe')}`, {
       shell: true, // 在Windows环境运行
       windowsHide: true,
       cwd: path.join(app.getPath('temp'),'stt'),
@@ -512,6 +551,14 @@ if (boolean[clientData.sttp ?? "true"]) {
         },
      };
      axios(config)
+     .catch((err) => {
+        dialog.showMessageBox(win,{
+          message: `系统出现问题：${err}`,
+          title: "ZERO ERROR",
+          type: "warning",
+          buttons: ["我知道了"]
+        })
+     })
       } catch (error) {
         dialog.showMessageBox(win,{
           message: `系统出现问题：${error}`,
