@@ -2,7 +2,7 @@
  * @Author: 秋晚夕落 qwxl@zero-ai.online
  * @Date: 2024-02-20 19:46:14
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-03-02 20:31:11
+ * @LastEditTime: 2024-03-02 21:05:55
  * @FilePath: \installer\main.js
  */
 const { app, BrowserWindow, ipcMain, dialog, Notification  } = require('electron')
@@ -159,9 +159,9 @@ const createWindow = () => {
   })
   ipcMain.on('startDownload', () => {
     fs.unlink(path.join(app.getPath('temp'),'cruiseInstaller','full-setup.exe')).then(() => {
-      downloadFile('https://mirror.ghproxy.com/https://github.com/QWXL/ZERO-CRUISE/releases/latest/download/Cruise/cruise-full-setup.exe',path.join(app.getPath('temp'),'cruiseInstaller','full-setup.exe'))
+      downloadFile('https://mirror.ghproxy.com/https://github.com/QWXL/ZERO-CRUISE/releases/latest/download/cruise-full-setup.exe',path.join(app.getPath('temp'),'cruiseInstaller','full-setup.exe'))
     }).catch(() => {
-      downloadFile('https://mirror.ghproxy.com/https://github.com/QWXL/ZERO-CRUISE/releases/latest/download/Cruise/cruise-full-setup.exe',path.join(app.getPath('temp'),'cruiseInstaller','full-setup.exe'))
+      downloadFile('https://mirror.ghproxy.com/https://github.com/QWXL/ZERO-CRUISE/releases/latest/download/cruise-full-setup.exe',path.join(app.getPath('temp'),'cruiseInstaller','full-setup.exe'))
     })
   })
 
