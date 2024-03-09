@@ -31,11 +31,11 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
       }
 
     if (plusModeSwitch.checked) {
-      logo.src = './AKETA SPACE GOLD.webp'
+      mainScreen.style.backgroundImage = `url('./AKETA SPACE GOLD.webp')`
       maxTokens = 128000
     } else {
+      mainScreen.style.backgroundImage = `url('./AKETA SPACE-Fixed.webp')`
       maxTokens = 16385
-      logo.src = './AKETA SPACE-Fixed.webp'
     }
     tokens.textContent = `Tokens:0/${maxTokens}`  
     console.log(`获取 plus 模式权限:${isEnabled}`)
@@ -56,6 +56,15 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
       localStorage.setItem('cruiseMode',cruiseModeSwitch.checked);
       cruiseModeSwitch.disabled = !plusPermission;
       console.log(`设置巡航模式:${cruiseModeSwitch.checked}`);
+      taskBtn.disabled = !cruiseModeSwitch.checked
+      if (cruiseModeSwitch.checked) {
+        taskBtn.title = `零个、一个或多个事项正在计时中…`
+      } else {
+        taskBtn.title = `日程系统仅能在巡航模式下工作。`
+        if ((await window.api.allTask()).length > 0) {
+          taskBtn.title = `一个或多个事项正在计时中，但日程系统仅能在巡航模式下工作。`
+        }
+      }
      linkIO
     }
   } else {
@@ -63,6 +72,8 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
     cruiseModeSwitch.checked = false
     cruiseMode = false
     localStorage.setItem('cruiseMode',false)
+    taskBtn.disabled = true
+    taskBtn.title = `日程系统仅能在巡航模式下工作。`
   }
     
   })
@@ -102,10 +113,10 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
   think = thinkModeSwitch.checked
   cruiseMode = cruiseModeSwitch.checked
   if (plus) {
-    logo.src = './AKETA SPACE GOLD.webp'
+    mainScreen.style.backgroundImage = `url('./AKETA SPACE GOLD.webp')`
     maxTokens = 128000
   } else {
-    logo.src = './AKETA SPACE-Fixed.webp'
+    mainScreen.style.backgroundImage = `url('./AKETA SPACE-Fixed.webp')`
     maxTokens = 16385
   }
   tokens.textContent = `Tokens:0/${maxTokens}`
@@ -122,29 +133,33 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
  * 函数toggleSelectMenu 用于切换选择菜单的显示并更改按钮的图标。
  */
 function toggleSelectMenu() {
-
+  if (taskContainer.style.display == 'block') {
+    toggleTaskMenu()
+    return
+  }
     if (selectContainer.style.display == 'block') {
+      moreButton.classList.add('icon-gengduo-xian')
+      moreButton.classList.remove('icon-back')
+      moreButton.title = `More Setting`
       selectContainer.style.animation = 'closeSelectMenu 0.1s ease-in-out'
       selectContainer.style.right = '-20%'
       setTimeout(() => {
           selectContainer.style.animation = ''
           selectContainer.style.display = 'none'
       }, 100);
-        moreButton.classList.add('icon-gengduo-xian')
-        moreButton.classList.remove('icon-back')
-        moreButton.title = `More Setting`
-    } else {
 
+    } else {
           selectContainer.style.display = 'block'
           selectContainer.style.right = '0'
           selectContainer.style.animation = 'toggleSelectMenu 0.1s ease-in-out'
           setTimeout(() => {
               selectContainer.style.animation = ''
           }, 100);
-        moreButton.classList.remove('icon-gengduo-xian')
-        moreButton.classList.add('icon-back')
-        moreButton.title = `Back To Main`
+          moreButton.classList.remove('icon-gengduo-xian')
+          moreButton.classList.add('icon-back')
+          moreButton.title = `Back To Main`
     }
+
 }
 
 
@@ -153,9 +168,6 @@ main.addEventListener("click", function(event) {
   closeWhenClickOther()
 });
 inputContainer.addEventListener("click", function(event) {
-  closeWhenClickOther()
-});
-Logo.addEventListener("click", function(event) {
   closeWhenClickOther()
 });
 savesContainer.addEventListener("click", function(event) {
@@ -173,6 +185,9 @@ function closeWhenClickOther() {
     }
     if (PromptMenu.style.display == 'block') {
       togglePromptMenu()
+    }
+    if (taskContainer.style.display == 'block') {
+      toggleTaskMenu()
     }
 }
 
@@ -212,7 +227,7 @@ function GiftCode() {
       const status = document.getElementById('codeStatus')
       status.textContent = `请稍后，正在核对你的兑换码`
       status.style.backgroundColor = `black`
-    axios.get(`https://chat.zero-ai.online/code?id=${localStorage.getItem('id')}&code=${code}`)
+    axios.get(`${root_url}/code?id=${localStorage.getItem('id')}&code=${code}`)
     .then((res) => {
       chatContainer.removeChild(temp)
       const result = res.data;
@@ -269,3 +284,38 @@ function setPrompt() {
 function ToggleleftSaveMode() {
   localStorage.setItem('saveWhenLeft',leftSaveModeSwitch.checked)
 }
+
+
+
+const taskContainer = document.getElementById('task-container')
+const taskBtn = document.getElementById('task-button')
+
+function toggleTaskMenu() {
+
+  if (taskContainer.style.display == 'block') {
+    taskContainer.style.animation = 'closeSelectMenu 0.1s ease-in-out'
+    taskContainer.style.right = '-20%'
+    setTimeout(() => {
+      taskContainer.style.animation = ''
+      taskContainer.style.display = 'none'
+    }, 100);
+    moreButton.classList.add('icon-gengduo-xian')
+    moreButton.classList.remove('icon-back')
+    moreButton.title = `More Setting`
+  } else {
+
+    taskContainer.style.display = 'block'
+    taskContainer.style.right = '0'
+    taskContainer.style.animation = 'toggleSelectMenu 0.1s ease-in-out'
+        setTimeout(() => {
+          taskContainer.style.animation = ''
+        }, 100);
+      moreButton.classList.remove('icon-gengduo-xian')
+      moreButton.classList.add('icon-back')
+      moreButton.title = `Back To Main`
+      taskWave.style.display = 'none'
+      taskBtn.style.boxShadow = ''
+  }
+}
+
+

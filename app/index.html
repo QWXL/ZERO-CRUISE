@@ -2,7 +2,7 @@
  * @Author: 秋晚夕落 qwxl@zero-ai.online
  * @Date: 2024-02-01 21:22:51
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-03-01 18:07:43
+ * @LastEditTime: 2024-03-08 00:16:37
  * @FilePath: \cruise-client\app\index.html
 -->
 <html>
@@ -35,7 +35,18 @@ function sleep(ms) {
   <div id="more-container" class="more-container">
     <button class="more-button" id="more-button" onclick="toggleSelectMenu()" title="More Setting"><span class="iconfont icon-gengduo-xian more-icon" id="more-icon"></span></button>
   </div>
-<div id="mainScreen"> 
+
+
+  
+<div id="mainScreen" style="background-image: url('./AKETA SPACE-Fixed.webp');background-size: 35%;"> 
+
+  <div id="taskBtn-container" class="task-container">
+    <button class="task-button" id="task-button" onclick="toggleTaskMenu()" title="零个、一个或多个事项正在计时中…"><span class="iconfont icon-time-task task-icon" id="task-icon"></span></button>
+  </div>
+
+  <div id="taskWave" class="task-container-wave" style="display: none;">
+    <div class="task-button-wave" id="task-button-wave"></div>
+  </div>
 
 <div class="dropScreen" id="dropScreen" style="display: none;">
     <span class="iconfont icon-copy coloredText"><br><span class="coloredText" id="dropLabel">松开鼠标以导入.zero文件</span></span>
@@ -232,6 +243,11 @@ function sleep(ms) {
       <button class="small-button" style="width: 80%;margin-left: 10%;margin-bottom: 8px;border-radius: 6px;padding: 0.3rem;" id="backToIndex" onclick="window.api.openWebsite();">访问官网 <span class="iconfont icon-shouye-home btn-icon" id=""></span></button>
     </th>
   </tr>
+  <tr>
+    <th colspan="2">
+      <p class="th-label" id="cruiseBulletin" style="opacity: 0.7;font-weight: lighter;word-wrap:break-word;width: 25vw;"></p>
+    </th>
+  </tr>
   </tfoot>
   </table>
   <button class="clear-button stopProcessBtn" onclick="window.api.closeProcess()"><span class="iconfont icon-tuichu btn-icon stopProcessBtn"  id=""></span></button>
@@ -242,9 +258,41 @@ function sleep(ms) {
 <input type="file" id="chatInput" accept=".zero" onchange="inputChat();toggleSelectMenu()" style="display: none"> <!-- file input -->
 
 
+<!-- 日程菜单 -->
+<div id="task-container" class="select-container" style="display: none;">
+  <table class="select-table task-table" rule="none" id="task-table-container">
+    <tbody id="task-table">
+    <tr>
+      <th>
+        <p class="th-label oldTask task" id="oldTask">　</p>
+        <span id="oldTaskSpan"></span>  
+      </th>
+    </tr>
+    <tr id="timeTr">
+      <th>
+        <p class="th-label task" id="timeLabel"></p>
+      </th>
+    </tr>
+    </tbody>
+    <tbody id="taskBody">
+      <tr>
+        <th>
+          <div class="taskLine"></div>
+          <div class="taskLineAnimation" id="taskLineAnimation"></div>
+        </th>
+      </tr>
+    </tbody>
+  </table>
+  <p class="task-tips" id="taskTips">
+    您将在此处查看到当前的日程，<br>
+    向零说：“___日后提醒我___事”<br>来创建一个日程。
+  </p>
+  <p class="taskTimeEnd"> - 日程时间线于此结束 - </p>
+</div>
 
 
-<img src="./AKETA SPACE-Fixed.webp" class="actaSpace" id="actaLogo"/>
+
+
 
 </div>
 

@@ -2,7 +2,7 @@
  * @Author: QWXL@zero-ai.online
  * @Date: 2024-01-31 23:36:03
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-03-02 16:20:32
+ * @LastEditTime: 2024-03-08 18:34:08
  * @FilePath: \cruise-client\main.js
  */
 const electron = require('electron');
@@ -19,6 +19,7 @@ const savesPath = path.join(app.getPath('userData'),"saves");
 const axios = require('axios');
 const express = require('express');
 const appserver = express();
+const moment = require('moment');
 let clientData = null
 const store = new Store({
   name: 'data' // 更改存储文件名，默认是'config'
@@ -31,6 +32,16 @@ const clientKeyStore = new Store({
     data:{
     type:"string",
     default:generateRandomString(2023)
+  }
+}
+});
+const rootUrlStore = new Store({
+  name: 'rootUrl',
+  fileExtension: 'zero',
+  schema:{
+    data:{
+    type:"string",
+    default:''
   }
 }
 });
@@ -63,7 +74,7 @@ async function checkDirectoryExists(directoryPath) { // 检查存档目录是否
       }
   }
 }
-
+let window
 checkDirectoryExists(savesPath);
 if(require('electron-squirrel-startup')) return; // 创建快捷方式
 app.setLoginItemSettings({
@@ -98,8 +109,10 @@ const createMainWindow = () => {
     win.loadFile(path.join(__dirname, 'app', 'index.html'))
     win.once('ready-to-show', () => {
       win.show()
+      sortEveryTasks(win)
     })    
     global.win = win
+    window = win
     win.setSkipTaskbar(true)
     return win
   }
@@ -185,6 +198,7 @@ const createMainWindow = () => {
 
 
       ipcMain.on('setData', (event, data) => {
+        data["root_url"] = null
         store.set('data',safeStorage.encryptString(JSON.stringify(data,null,2)))
       })
       ipcMain.on('newMessage', (event, messageObject) => {
@@ -216,6 +230,7 @@ const createMainWindow = () => {
       })
 
       ipcMain.on('closeProcess', () => {
+        clearInterval(taskInterval)
         app.quit()
       }) 
 
@@ -319,16 +334,19 @@ const createMainWindow = () => {
         return result
       })
 
-
       const data = store.get('data')
       if (data?.data) {
       clientData = JSON.parse(safeStorage.decryptString(Buffer.from(data?.data))) 
       } else {
         clientData = null
       }
+      const rootUrl = rootUrlStore.get('data')
+      if (rootUrl) {
+        clientData[`root_url`] = rootUrl
+      }
       console.log(clientData)
       if (clientData) {
-        win.webContents.send('localData',safeStorage.decryptString(Buffer.from(data.data)),app.isPackaged ? app.getVersion() : `[unPackaged] ${app.getVersion()}`)
+        win.webContents.send('localData',clientData,app.isPackaged ? app.getVersion() : `[unPackaged] ${app.getVersion()}`)
       } else {
         win.webContents.send('localData',"{}",app.isPackaged ? app.getVersion() : `[unPackaged] ${app.getVersion()}`)
         win.webContents.send('first',true)
@@ -473,6 +491,7 @@ async function readAndSortTitlesByIds() {
 
 ipcMain.on('app-restart', function () {
       app.relaunch()
+      clearInterval(taskInterval)
       app.quit()
 })
 
@@ -535,7 +554,29 @@ if (boolean[clientData?.sttp ?? "true"]) {
   
 }
 
-
+  ipcMain.on('taskPush', async (event,object) => {
+    let newObject = JSON.parse(object)
+    if (newObject.time) {
+      console.log('absolute time')
+      tasksArray.push(newObject)
+    } else if (newObject.relative) {
+      console.log('relative time')
+      const timeCount = newObject.relative.timeCount;
+      const timeUnit = newObject.relative.timeUnit || "day";
+      const time = moment().add(timeCount,timeUnit).format('YYYY-MM-DD HH:mm:ss')
+      newObject.time = time
+      delete newObject.relative
+      tasksArray.push(newObject)
+    }
+    await fs.writeFile(path.join(app.getPath('userData'), 'tasks.json'), JSON.stringify(tasksArray,null,2), 'utf8')
+    console.log(newObject)
+    sortEveryTasks()
+    const notification = new Notification({
+      title: `日程创建成功！`,
+      body: `${newObject.title} (${newObject.time})`
+    });
+    notification.show();
+  })
 
  
    ipcMain.on('startStt', async (e) => {
@@ -677,6 +718,79 @@ async function checkPortAvailable(port) {
 }
 
 
+const taskInterval = setInterval(() => {
+  try {
+  win.webContents.send('getCruise')
+  } catch (e) {
+    console.log(e)
+  }
+}, 1500);
+
+ipcMain.on('returnCruise',async (e,cruise) => {
+  if (cruise) {
+  const past = getMostRecentPastObject()
+    if (past) { 
+    win.webContents.send('pastTask', past);
+    const notification = new Notification({
+      title: `${past.title}`,
+      body: `[日程提醒] ${past.content ?? '这个日程现在被触发！'}`,
+      timeoutType: 'never',
+      urgency: 'critical'
+    });
+    notification.show();
+    notification.on('click', () => {
+      if (!win.isVisible()) {
+        win.show()
+      }
+    })
+
+    tasksArray.splice(tasksArray.indexOf(past), 1);
+    await fs.writeFile(path.join(app.getPath('userData'), 'tasks.json'),JSON.stringify(tasksArray,null,2), 'utf8')
+ }}
+})
+
+ipcMain.on('removeTask', async (e,task) => {
+  console.log(task)
+  tasksArray.splice(task, 1);
+  await fs.writeFile(path.join(app.getPath('userData'), 'tasks.json'),JSON.stringify(tasksArray,null,2), 'utf8')
+  sortEveryTasks(win)
+  const notification = new Notification({
+    title: `${past.title}`,
+    body: `[删除日程] ${past.content ?? '已经删除成功！'}`,
+    urgency: 'normal'
+  });
+  notification.show();
+  notification.on('click', () => {
+    if (!win.isVisible()) {
+      win.show()
+    }
+  })
+})
+
+ipcMain.on('removeAllTasks', async (e) => {
+  tasksArray = []
+  await fs.writeFile(path.join(app.getPath('userData'), 'tasks.json'),JSON.stringify(tasksArray,null,2), 'utf8')
+  const notification = new Notification({
+    title: `全部的日程`,
+    body: `[日程提醒] '全部日程均已删除成功！'}`,
+    urgency: 'normal'
+  });
+  notification.show();
+  notification.on('click', () => {
+    if (!win.isVisible()) {
+      win.show()
+    }
+  })
+})
+
+ipcMain.handle('allTask',() => {
+  return tasksArray
+})
+
+ipcMain.handle('getTimeDiff', () => {
+  const targetTime = tasksArray[0].time
+  return getTimeDiff(targetTime)
+})
 
 })
 
@@ -689,5 +803,82 @@ function generateRandomString(length) {
       randomString += characters.charAt(Math.floor(Math.random() * characters.length));
   }
   return randomString;
+}
+
+let tasksArray = []
+
+async function sortEveryTasks(win) {
+  try {
+    tasksArray = JSON.parse(await fs.readFile(path.join(app.getPath('userData'), 'tasks.json'), 'utf8'));
+    if (tasksArray.length) {
+    // 对象数组根据时间进行排序
+    tasksArray.sort((a, b) => {
+      // 使用 moment 解析时间字符串，并转换为 Unix 时间戳（毫秒）
+      let timeA = moment(a.time, 'YYYY-MM-DD HH:mm:ss').valueOf();
+      let timeB = moment(b.time, 'YYYY-MM-DD HH:mm:ss').valueOf();
+
+      return timeA - timeB; // 如果希望最近的时间靠前，则b减a；如果希望最早的时间靠前，则a减b
+    });
+    console.log(tasksArray)
+    window.webContents.send('getTask', tasksArray)
+    await fs.writeFile(path.join(app.getPath('userData'), 'tasks.json'),JSON.stringify(tasksArray,null,2), 'utf8')
+    return tasksArray
+  }
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+
+/**
+ * 
+ * @returns 返回距最近4秒以内的最近的日程对象，亦或是略过的日程，无则返回null
+ */
+function getMostRecentPastObject() {
+  // 获取当前时间
+
+  let pastObjects = []
+
+  for (i = 0; i < tasksArray.length; i++) {
+    if (getTimeDiff(tasksArray[i].time) < 5) {
+      pastObjects.push(tasksArray[i])
+    }
+  }
+  // 返回最接近当前时刻（数组中第一个）或者null（如果没有任何对象满足要求）
+  if (pastObjects.length > 0) {
+    return pastObjects[0];
+  } else {
+    // 如果没有距离现在小于4秒完成的日程，就再检测一遍是否有遗漏略过的日程
+    // 获取当前时间
+    const now = moment();
+
+    // 过滤出所有已经到点的对象，并按时间降序排序（即最接近当前时间的在前）
+    pastObjects = tasksArray.filter(obj => {
+      const objTime = moment(obj.time, 'YYYY-MM-DD HH:mm:ss');
+      return now.isAfter(objTime); // 当前时间晚于obj中指定的时间
+    }).sort((a, b) => {
+      return moment(a.time, 'YYYY-MM-DD HH:mm:ss') - moment(b.time, 'YYYY-MM-DD HH:mm:ss');
+    });
+
+  // 返回最接近当前时刻（数组中第一个）或者null（如果没有任何对象满足要求）
+  return pastObjects.length > 0 ? pastObjects[0] : null;
+  }
+}
+
+
+
+function getTimeDiff(time) {
+// 使用moment创建两个时间对象
+if (time) {
+let moment1 = moment();
+let moment2 = moment(time, "YYYY-MM-DD HH:mm:ss");
+
+// 计算它们之间的差异（以秒为单位）
+let diffInSeconds = moment2.diff(moment1, 'seconds');
+return diffInSeconds
+} else {
+  return 0
+}
+
 }
 

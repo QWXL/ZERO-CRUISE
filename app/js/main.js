@@ -37,9 +37,12 @@ const leftSaveModeSwitch = document.getElementById('leftSaveModeSwitch');
 const sttModeSwitch = document.getElementById('sttModeSwitch'); 
 const PromptMenu = document.getElementById('customPrompt');
 const PromptInput = document.getElementById('prompt-input');
-const logo = document.getElementById('actaLogo')
 const savesContainer = document.getElementById('saves-container')
+const mainScreen = document.getElementById('mainScreen')
+const taskTable = document.getElementById('task-table')
 document.getElementById("versionSpan").textContent = sessionStorage.getItem('version');
+let editedMessage = [] // 定义一个数组，临时存放编辑消息的eid，当被编辑的消息正处于等待回复的状态时，屏蔽下一次的消息，等待后一次的消息
+let taskList = []
 let plusPermission = false
 body.style.minHeight = '100vh'
 function showLoadLabel(text) {
@@ -60,7 +63,8 @@ const nameList = {
     "assistant":"ZERO AI",
     "system":"ZERO 管理员",
     "error":"<s>ZERO AI</s>",
-    "letter":"属于你的信"
+    "letter":"属于你的信",
+    "task":"ZERO AI 日程提醒"
 }
 
 const boolean = {
@@ -170,7 +174,11 @@ const markedOptions = {
 axios.get('https://ipapi.co/json/').then((response) => {
     const ip = response.data.ip
     sessionStorage.setItem('ip',ip)
-    showLoadLabel('连接至服务器……')
+    if ( localStorage.getItem('root_url')) {
+        showLoadLabel(`连接至服务器……(${root_url})`)
+    } else {
+        showLoadLabel(`连接至服务器……`)
+    }
 })
 
 
@@ -195,7 +203,7 @@ function onclickButton() {
     input.setAttribute('placeholder','滴滴滴…链接成功！继续输入以和零对话！')
     inputByUser(message) 
     input.value = ''
-    Logo.style.display = 'none'
+    mainScreen.style.backgroundImage = ''
     } else {
         input.setAttribute('placeholder','你最好是别发个寂寞。')
     }
@@ -244,7 +252,7 @@ let tempBubble
  * @param {boolean} audio - “audio”参数指示这条消息是否由 Sound 2 Text 程序填充
  * @returns 该函数没有 return 语句，因此它不会显式返回任何内容。
  */
-function inputByUser(message,audio) {
+async function inputByUser(message,audio) {
     const mid = createCode()
     if (message) {
     chatLog.push({"role":"user","content":`${message}`})
@@ -305,7 +313,8 @@ function inputByUser(message,audio) {
             app: app,
             mid: mid,
             cruise:true,
-            audio: audio
+            audio: audio,
+            tasks: await window.api.allTask()
         },
         timeout: 36000000, 
         headers: {
@@ -402,6 +411,32 @@ function parseResult(result) {
     input.setAttribute('placeholder','滴滴滴…连接丢失，请稍后重试……')
     return
     }
+    if (editedMessage.includes(`${result.mid.replace('ai-','')}`)) {
+        console.log(`edited ignore ${result.mid}`)
+        editedMessage.splice(editedMessage.indexOf(result.mid),1)
+        return
+    }
+    let nim = ''
+    if (result.task && cruiseMode) {
+        window.api.taskPush(result.task)
+        nim = createNotifactionInMessage(`已经成功的添加了一个提醒！`,2)
+
+    }
+    if (result.removeTask && cruiseMode) {
+        if (result.removeTask == 'All') {
+            removeAllTasks()
+            nim = createNotifactionInMessage(`已经成功的删除了全部提醒！`,2)
+        } else {
+        removeTask(result.removeTask)
+        nim = createNotifactionInMessage(`已经成功的删除了一个提醒！`,2)
+    }
+
+    }
+
+    if (result.taskDone) {
+        nim = createNotifactionInMessage(`触发了日程：${result.taskDone.title}（${result.taskDone.time}）<br><em style=\"opacity:0.8\">${result.taskDone.content ?? ''}<em>`,2)
+    }
+
     if (result.err) {
         createErrBubble(getTime(),'error','系统出现错误，代码：' + result.err + '<br>请联系开发者。',tag)     
        try {
@@ -410,6 +445,7 @@ function parseResult(result) {
        return
     }
     if (!result.ban) {
+        let resultBubble
     console.log(result)
     let content = result.AISend.content
     window.api.newMessage({content:content})
@@ -418,11 +454,13 @@ function parseResult(result) {
         const match = result.AISend.content.match(regex);
         console.log(match)
         const hidesContent = match[0].replace('<hide>',`<br><button class="btnInChat" id="btnHide-${getTime()}" onclick="toggleHide('${getTime()}')">显示思考过程 <span class="iconfont icon-chevron_right closeHideBtn"></button><hide id="hide-${getTime()}">`).replace('</hide>','<br></hide><br><br>');
-       const chatBubble = createChatBubble(result.AISend.time,result.AISend.user,result.AISend.content.replaceAll(`${match[0]}`,''),tag ,result.mid)
+       const chatBubble = createChatBubble(result.AISend.time,result.AISend.user,result.AISend.content.replaceAll(`${match[0]}`,''),tag ,result.mid,chatIndex,true,false,nim)
        chatBubble.lastElementChild.innerHTML = hidesContent + chatBubble.lastElementChild.innerHTML
+       resultBubble = chatBubble
     } else {
-    createChatBubble(result.AISend.time,result.AISend.user,content,tag,result.mid,chatIndex)
+    resultBubble = createChatBubble(result.AISend.time,result.AISend.user,content,tag,result.mid,chatIndex,true,false,nim)
     }
+
     try {
     chatContainer.removeChild(tempBubble)
      } catch {}
@@ -464,7 +502,6 @@ function startTimeInterval() {
 let timeInterval = setInterval(() => {
     let times = getTime(true)
     let string = ''
-    if (!app || false) {
         string = '　'
     if (times.hour >= 4 && times.hour < 9) {
         string += '早上好！'
@@ -481,9 +518,6 @@ let timeInterval = setInterval(() => {
     } else if (times.hour < 4) {
         string += '凌晨好！'
     }
-} else {
-    string = ''
-}
         HeaderTime.textContent = getTime() + string
     if (timeTitle == false) {
         clearInterval(timeInterval)
@@ -492,6 +526,10 @@ let timeInterval = setInterval(() => {
 }
 
 startTimeInterval()
+
+setInterval(() => {
+    document.getElementById('timeLabel').textContent = getTime()
+}, 1000);
 
 
 /**
@@ -561,7 +599,8 @@ function toggleHide(time) {
  * @param {number?} chatIndex - `chatIndex`参数是一个可选参数，表示聊天气泡对应的聊天记录（chatLog `Array`）索引位置，主要用于`who == "user"`时的编辑功能。
  * @param {boolean | true} security - `security`参数是一个可选参数，如果显式的规定它，则可以设置是否使用激进或安全的创建策略，如果不规定它，则默认使用更安全的策略（`true`）。
  * @param {boolean?} array - `array`参数是一个可选参数，当它为`true`时，将返回一个HTMLElementsArray，否则，返回chatBubble元素本身。
- * @returns {HTMLElement | HTMLElementsArray} 返回创建并附加到`chatContainer`的`chatBubble`元素集合，如果`array === true`，它包括：`[
+ * @param {HTMLElement?} extraElement - `extraElement`参数是一个可选参数，它代表一个额外的元素，该元素将附加到`chatBubbleMessage`元素上。
+ * @returns {HTMLElement | HTMLElementsArray} 返回创建并附加到`chatContainer`的`chatBubble`元素集合，如果`array == true`，它包括：`[
         chatBubble,
         chatBubbleMessage,
         chatBubbleTime,
@@ -569,7 +608,7 @@ function toggleHide(time) {
         chatBubbleTag
     ]`，否则，包括chatBubble元素本身。
  */
-function createChatBubble(time,who,content,tag,eid,chatIndex,security,array) { 
+function createChatBubble(time,who,content,tag,eid,chatIndex,security,array,extraElement) { 
     let chatBubbleTag = null;
     if (!time || typeof time !== 'string') {
         time = getTime()
@@ -652,10 +691,10 @@ function createChatBubble(time,who,content,tag,eid,chatIndex,security,array) {
         chatBubbleMessage.textContent = ''
         chatBubbleMessage.innerHTML = ''
     }
-    let height = (Number(chatContainer.style.height.replaceAll('px','') || window.screen.availHeight) + chatBubble.scrollHeight * 4) + 200
+    let height = (Number(chatContainer.style.height.replaceAll('px','') || window.screen.availHeight) + chatBubble.getBoundingClientRect().height * 4) + 200
     console.log(height)
     chatContainer.style.height = `${height}px`
-    Logo.style.display = 'none'
+    mainScreen.style.backgroundImage = ''
     const preLagElements = chatBubbleMessage.getElementsByClassName(`preLeg${randomId}`)
     if (preLagElements) {
         chatBubbleMessage.querySelectorAll('pre code').forEach(el => {
@@ -675,7 +714,7 @@ function createChatBubble(time,who,content,tag,eid,chatIndex,security,array) {
             preLagElements[i].textContent = language
         }
     };
-        
+    if (extraElement) chatBubbleMessage.appendChild(extraElement)
     if (array) 
     return [
         chatBubble,
@@ -752,6 +791,15 @@ function applyEdit(pmid) {
     })
     chatLog.splice(Number(targetIndex) + 1)
     chatLog[Number(targetIndex)] = {role:"user", content:tempTextInput.value}
+    if (tempBubble) {
+        try {
+        editedMessage.push(pmid.replace('prompt-',''))
+        chatContainer.removeChild(tempBubble)
+        tempBubble = null
+        } catch (error) {
+            console.log(error)
+        }
+        }
     inputByUser()
     return pmid
 }
@@ -767,8 +815,9 @@ function mobileCheck() {
 
 function createWeatherCube(parentElement) {
     if (document.getElementById('he-plugin-standard')) {
-        document.getElementById('he-plugin-standard').innerHTML = '当前预报展示页已过期。'
-        document.getElementById('he-plugin-standard').id = ''
+        const p = document.createElement('p')
+        document.getElementById('he-plugin-standard').replaceWith(p)
+        p.textContent = '「此天气预报页面已经被停用。」'
     }
 
     let widget
@@ -862,12 +911,12 @@ function getTime(object) {
   function refreshScreen(relink,delFile) {
     chatLog = []
     chatContainer.innerHTML = ''
-    Logo.style.display = 'block'
+    mainScreen.style.backgroundImage = ''
     canSend = true
     if (plus) {
-        Logo.src = './AKETA SPACE GOLD.webp'
+        mainScreen.style.backgroundImage = `url('./AKETA SPACE GOLD.webp')`
     } else {
-        Logo.src = './AKETA SPACE-Fixed.webp'
+        mainScreen.style.backgroundImage = `url('./AKETA SPACE-Fixed.webp')`
     }
     tokens.textContent = `Tokens:0/${maxTokens}`  
     token = 0 
@@ -897,64 +946,12 @@ function getTime(object) {
   }
 
   function sockets(socket) {
-
- /**
-   * 函数“createNotifactionInMessage”用于创建提示性气泡内嵌套框，并可以往内填充文字与可选择的图标。
-   * @param content - 这个参数是嵌套框内的文字
-   * @param {Number} style - 这个参数用于选择要使用的图标与颜色，null/0为错误样式，1为提醒样式，2为确定样式。
-   * @returns - 将返回创建后的element，随后可以插入进要插入的地方。
-   */
- function createNotifactionInMessage(content,style) {
-    let iconClass = ''
-    let pColor = ''
-    switch (style) {
-        case 0:
-            iconClass = 'iconfont icon-icon_line_close' // 错误icon
-            break;
-        case 1:
-            iconClass = 'iconfont icon-tishi-xian' // 提醒icon 
-            pColor = 'rgba(255,255,0,0.5)'
-            break;
-        case 2:
-            iconClass = 'iconfont icon-sure' // 确定icon
-            pColor = 'rgba(0,50,0,0.5)'
-            break;
-        default:
-            iconClass = 'iconfont icon-icon_line_close' // 错误icon
-            break;
-    }
-    // 创建一个新的段落元素
-    const messageTip = document.createElement('p');
-    messageTip.className = 'messageTip';
   
-    // 创建一个图标元素
-    const iconElement = document.createElement('span');
-    iconElement.className = iconClass;
-    iconElement.style.marginBottom = '-35px';
-    iconElement.style.width = '20px';
-    iconElement.style.height = '20px';
-    iconElement.style.display = 'inline-block';
-    iconElement.style.marginRight= '10px';
-    iconElement.style.fontSize= '1rem';
-    pColor ? setColor() : null;
-
-    function setColor() {
-        messageTip.style.backgroundColor = pColor
-        messageTip.style.border = `${pColor} 2px solid`
-    }
-      // 将图标元素添加到段落中
-      messageTip.appendChild(iconElement);
+socket.on(`cruiseBulletin`, (arg) => {
+    console.log(arg)
+    document.getElementById('cruiseBulletin').textContent = arg
   
-      // 添加文本节点到段落中。content 是传入的参数，代表需要显示的消息内容。
-      const textNodeContent = content;
-      const textNode=document.createTextNode(textNodeContent);
-  
-      messageTip.appendChild(textNode);
-  
-      return messageTip
-  }
-  
-
+})
 
 socket.on(`messageUnfit`, (arg) => {
     console.log(arg)
@@ -972,7 +969,7 @@ socket.on(`message-${localStorage.getItem('id')}`, (arg) => {
             createChatBubble(getTime(),'error','你已被后台管理员封禁！请前往官方群（572900734）申诉后解封。')     
             return
         } else if (result.type == 'err') {
-            parseResult(result)
+            createChatBubble(result.time,result.user,result.content)
         } else {
         createChatBubble(result.time,result.role,result.content)
         }
@@ -1305,7 +1302,7 @@ document.getElementById('lockOptions').classList.remove('notEnabled')
       }
       
       // 当预载和页面装载都准备好之后要执行的操作放在这里面。
-      function runOnPreloadComplete() {
+      async function runOnPreloadComplete() {
         showLoadLabel('完成！');
         const animation = document.getElementById('readyOnLoadAnimation')
         animation.style.animationPlayState = 'paused';
@@ -1315,6 +1312,17 @@ document.getElementById('lockOptions').classList.remove('notEnabled')
                 readyOnLoad.style.display = 'none';
             }, 1000);
         }
+         // 初始化taskbtn
+        if (cruiseModeSwitch.checked) {
+            taskBtn.title = `零个、一个或多个事项正在计时中…`
+            taskBtn.disabled = false
+        } else {
+            taskBtn.disabled = true
+            taskBtn.title = `日程系统仅能在巡航模式下工作。`
+            if ((await window.api.allTask()).length > 0) {
+                  taskBtn.title = `一个或多个事项正在计时中，但日程系统仅能在巡航模式下工作。`
+                }
+            }
       }
       
       // 监听window.onload事件以判断页面是否加载完毕。
@@ -1369,6 +1377,8 @@ async function outputChat() {
     download(`${outputID}.zero`,Url)
 
 }
+
+
 
 /**
  * “inputChat”函数是一个异步函数，用于读取和处理包含聊天数据的 JSON 文件。
@@ -1468,8 +1478,7 @@ function createErrBubble(time,who,content,tag,type) {
     let bubble
     if (type !== 'restart') {
         const button = createFunctionButton('err',randomId,`reSend('${randomId}','${type || 'all'}')`,`重试 <span class="iconfont icon-ic_Refresh closeHideBtn"></span>`)
-        const errBubble = createChatBubble(time,who,content,tag,null,null,false,true)
-        errBubble.id = randomId
+        const errBubble = createChatBubble(time,who,content,tag,randomId,null,false,true)
         errBubble[1].appendChild(button)
         bubble = errBubble
     } else {
@@ -1498,16 +1507,20 @@ async function reSend(errorBubbleId,type) {
         getACCESS(`重新申请`,false)
         .then(() => {
             try {
-    chatContainer.removeChild(tempBubble)
-     } catch {}
+            chatContainer.removeChild(tempBubble)
+            } catch {}
         })
     } else if (type == 'relink') {
         linkIO()
     } else {
+        tempBubble = createChatBubble('Connecting','assistant',"<div class=\"chatLoader\"></div>")
         linkIO()
         getACCESS(`重新申请`)
         .then((plus) => {
         inputByUser()
+        try {
+            chatContainer.removeChild(tempBubble)
+        } catch {}
         })
     }
     if (errorBubbleId) {
@@ -1917,3 +1930,213 @@ function createFunctionButton(type,randomId,onclick,content) {
 
     return button
 }
+
+
+
+function addTask(title,time,content = '') {
+    // 创建tr元素
+    var tr = document.createElement('tr');
+
+    // 创建th元素
+    var th = document.createElement('th');
+
+    // 创建p元素，并设置其类名和内容
+    var p = document.createElement('p');
+        p.className = 'th-label task';
+        p.textContent = title;
+        p.title = title
+    // 将p元素追加到th中
+    th.appendChild(p);
+
+    // 创建span元素，并设置其内容
+    var span = document.createElement('span');
+    span.innerHTML = `${time} <br> ${content} `;
+    span.title = content;
+    // 将span追加到th中
+    th.appendChild(span);
+
+    // 最后，将构建好的th追加到tr中（完成了整个结构）
+    tr.appendChild(th);
+    tr.classList.add('taskTr')
+    taskTable.appendChild(tr);
+    resetTabelMargin() // 每对tabel变更一次，便尝试重设一次下边距
+}
+
+window.api.getTask((arr) => {
+    console.log(arr)
+
+        document.querySelectorAll('.taskTr').forEach((item) => {
+            item.remove()
+        })
+        document.getElementById('taskTips').style.display = 'none'
+
+  for (let i = 0; i < arr.length; i++) {
+    addTask(arr[i].title,arr[i].time,arr[i].content)
+  }
+  getDiffAndExecute()
+})
+
+const taskTableContainer = document.getElementById('task-table-container')
+const taskWave = document.getElementById('taskWave')
+
+window.api.pastTask(async (object) => {
+    console.log(object)
+    let url = `${root_url}/ai`
+    let config = {
+        method: 'post',
+        url: url,
+        headers: { 
+           'Content-Type': 'application/json'
+        },
+        data:{
+            message: JSON.stringify(chatLog.concat([{role:"system",content:`[用户的${object.title}（${object.time} - ${object.content ?? ''}）日程即将触发！请生成一段话语提醒用户。]`}])),
+            ip: sessionStorage.getItem('ip'),
+            access: sessionStorage.getItem('access'),
+            id: localStorage.getItem('id'),
+            think: false,
+            memory: localStorage.getItem('memory') || '无',
+            customPrompt: customPrompt,
+            app: true,
+            mid: null,
+            cruise:true,
+            audio: false,
+            tasks: [object].concat(await window.api.allTask()),
+            taskRole: true,
+            task: object
+        },
+        timeout: 36000000, 
+        headers: {
+            'Authorization': `Bearer ${sessionStorage.getItem('access')}`
+          }
+        }
+    axios(config).then(async (response) => {
+        if (response.data !== 'Ticking') { 
+
+    createChatBubble(object.time,'system',`[日程提醒] <b>${object.title}</b> 已被触发！快去做事吧！<br>`,null,null,null,true,false,createNotifactionInMessage(`<em style=\"opacity:0.8\">${object.content ?? ''}<em>`,3))
+}
+document.getElementById('oldTask').innerHTML = `<s>${object.title}</s>`;
+document.getElementById('oldTaskSpan').innerHTML = `${object.time} <br> ${object.content ?? ''}`;
+document.getElementsByClassName('taskTr')[0].remove()
+taskWave.style.display = 'block'
+taskBtn.style.boxShadow = '0px 0px 18px 5px rgba(150, 150, 150, 0.3)'
+if (await window.api.allTask().length == 0) {
+    document.getElementById('taskTips').style.display = 'block'
+}
+getDiffAndExecute()
+resetTabelMargin()
+})
+})
+
+window.api.getCruise(() => {
+    window.api.returnCruise(cruiseMode)
+})
+
+async function removeTask(indexObject) {
+    const index = JSON.parse(indexObject).index
+    const tasks = document.querySelectorAll('.taskTr')
+    const task = tasks[index]
+    if (task) {
+        task.remove()
+        window.api.removeTask(index)
+    }
+    if (await window.api.allTask().length == 0) {
+        document.getElementById('taskTips').style.display = 'block'
+    }
+    getDiffAndExecute()
+    resetTabelMargin()
+}
+
+
+function removeAllTasks() {
+    document.querySelectorAll('.taskTr').forEach((item) => {
+        item.remove()
+    })
+    window.api.removeAllTasks()
+    document.getElementById('taskTips').style.display = 'block'
+    resetTabelMargin()
+}
+
+async function getDiffAndExecute() {
+    const diff = await window.api.getTimeDiff()
+    console.log(diff)
+    const animate = document.getElementById('taskLineAnimation').animate([
+        // from keyframe（相当于0%）
+        { height: 0 },
+      
+        // to keyframe（相当于100%）
+        { height: taskTableContainer.scrollHeight + 'px' }
+      ], {
+        duration: (diff * 1000),     // 动画持续时间为剩余日程计时时间
+        fill: 'forwards'    // 动画结束后保持最后一帧状态
+      });
+      return animate
+}
+
+async function resetTabelMargin() {
+    const nowHeight = taskTableContainer.scrollHeight
+    let newMargin = (window.screen.availHeight - nowHeight) / 4
+    if (newMargin <= 0) {
+        newMargin = `20%`
+    }
+    taskTableContainer.style.marginBottom = newMargin
+
+}
+
+
+    /**
+   * 函数“createNotifactionInMessage”用于创建提示性气泡内嵌套框，并可以往内填充文字与可选择的图标。
+   * @param content - 这个参数是嵌套框内的文字
+   * @param {Number} style - 这个参数用于选择要使用的图标与颜色，null/0为错误样式，1为提醒样式，2为确定样式，3为更多样式。
+   * @returns - 将返回创建后的element，随后可以插入进要插入的地方。
+   */
+    function createNotifactionInMessage(content,style) {
+        let iconClass = ''
+        let pColor = ''
+        switch (style) {
+            case 0:
+                iconClass = 'iconfont icon-icon_line_close' // 错误icon
+                break;
+            case 1:
+                iconClass = 'iconfont icon-tishi-xian' // 提醒icon 
+                pColor = 'rgba(255,255,0,0.5)'
+                break;
+            case 2:
+                iconClass = 'iconfont icon-sure' // 确定icon
+                pColor = 'rgba(20,70,20,0.5)'
+                break;
+            case 3:
+                iconClass = 'iconfont icon-gengduo-xian' // 更多icon
+                pColor = 'rgba(50,50,50,0.5)'
+                break;
+            default:
+                iconClass = 'iconfont icon-icon_line_close' // 错误icon
+                break;
+        }
+        // 创建一个新的段落元素
+        const messageTip = document.createElement('p');
+        messageTip.className = 'messageTip';
+      
+        // 创建一个图标元素
+        const iconElement = document.createElement('span');
+        iconElement.className = iconClass;
+        iconElement.style.marginBottom = '-35px';
+        iconElement.style.width = '20px';
+        iconElement.style.height = '20px';
+        iconElement.style.display = 'inline-block';
+        iconElement.style.marginRight= '10px';
+        iconElement.style.fontSize= '1rem';
+        pColor ? setColor() : null;
+    
+        function setColor() {
+            messageTip.style.backgroundColor = pColor
+            messageTip.style.border = `${pColor} 2px solid`
+        }
+          // 将图标元素添加到段落中
+          messageTip.appendChild(iconElement);
+      
+          // 添加文本节点到段落中。content 是传入的参数，代表需要显示的消息内容。
+      
+          messageTip.innerHTML += content;
+      
+          return messageTip
+      }

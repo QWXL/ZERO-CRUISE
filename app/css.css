@@ -44,6 +44,8 @@
     position: fixed;
     right: 0;
     bottom: 0;
+    background-repeat: no-repeat;
+    background-position: center bottom 70%;
 }
 
 
@@ -326,6 +328,13 @@ a.openlogoBackground {
     .error {
         background-color: rgb(150,50,50);
     }
+
+    .chatBubble.task {
+        background-color: rgb(27,27,27);
+    }
+    .chatBubble.task::after {
+        content: '';
+    }
     
     .chatBubble {
         white-space: pre-line;
@@ -459,32 +468,6 @@ a.openlogoBackground {
         font-size: 0.9rem;
     }
 
-    .headerTitle {
-        position: fixed;
-        top:0;
-        width: 100%;
-        height: 7%;
-        text-align: center;
-        font-size: 24;
-        padding-bottom: 0%;
-        margin-top: 0%;
-        background-color: rgb(70,70,70);
-        z-index: 114514191981000;
-    }
-    
-    .headerTitle p {
-        width: 100%;
-        text-align: center;
-        font-size: 24;
-        padding-bottom: 0%;
-        margin-top: 2%;
-    }
-    
-    .headerTitle button {
-        position: absolute;
-        left:1%;
-        top:2%
-    }
 
     .messageTip {
 
@@ -493,6 +476,7 @@ a.openlogoBackground {
         background-color: rgba(230,10,10,0.5);
         border-radius: 5px;
         margin-right: 2%;
+        width: 100%;
         
     }
     
@@ -1388,6 +1372,7 @@ a.openlogoBackground {
         margin: 0;
         height: 2vh ;
         -webkit-app-region: drag;
+        z-index: 20;
     }
     
       
@@ -1713,3 +1698,229 @@ a.openlogoBackground {
     input.switchWait + label::before {
         opacity: 0;
         }
+
+
+
+
+        .task-container {
+            right: 2vw;
+            top:6vh;
+            position: fixed;
+            z-index: 114514;
+        }
+
+        #task-container {
+            overflow-y: auto;
+
+        }
+        
+        .task-button {
+            width: 50px;
+            height: 50px;
+            font-size: 32;
+            background-color: #444;
+            border: 0;
+            border-radius: 3px;
+            text-align: center;
+            padding: 0;
+            margin: auto;
+            box-shadow: var(--shadow-elevation-medium);
+        }
+
+        .task-button:disabled {
+            background-color: #333;
+            cursor: not-allowed;
+        }
+
+        .task-button:disabled:hover {
+            background-color: black;
+            cursor: not-allowed;
+        }
+
+
+        .task-button:disabled .task-icon {
+            color: gray;
+        }
+
+        .task-container-wave {
+            right: 2vw;
+            top:6vh;
+            position: fixed;
+            z-index: 1;
+            animation: opac-container 3s infinite;
+            -webkit-animation: opac-container 3s infinite;
+}
+
+        .task-button-wave {
+            width: 50px;
+            height: 50px;
+            font-size: 32;
+            background-color: #858585;
+            border: 0;
+            border-radius: 50%;
+            text-align: center;
+            padding: 0;
+            margin: auto;
+            animation: opac 3s infinite;
+            -webkit-animation: opac 3s infinite;
+            -webkit-border-radius: 50%;
+            -moz-border-radius: 50%;
+            -ms-border-radius: 50%;
+            -o-border-radius: 50%;
+}
+
+        @keyframes opac {
+            from {
+              opacity: 0.7;
+              width: 50px;
+              height: 50px;
+            }
+      
+            to {
+              opacity: 0;
+              width: 30vw;
+              height: 30vw;
+            }
+          }
+
+
+          @keyframes opac-container {
+            from {
+              right: 2vw;
+              top: 6vh;
+            }
+      
+            to {
+              right: calc(-15vw + 2vw + 37.5px);
+              top: calc(-15vw + 6vh + 37.5px)
+            }
+          }
+
+        .task-icon {
+            font-size: 32 !important;
+            color: lightgray;
+            z-index: 1000;
+            position:relative;
+            margin: 0 auto
+            ;
+        }
+        
+        .task-button:hover {
+            background-color: rgb(70,70,70);
+            box-shadow: var(--shadow-elevation-high);
+        }
+
+        .task-button:hover .task-icon {
+            color: white;
+        }
+
+        .task-button:active {
+            background-color: rgb(50,50,50);
+        }
+
+        .task-button:active .task-icon {
+            color: black;
+        }
+
+        .task-table {
+            width: 90%;
+            border-right: 3px solid rgb(255, 255, 255);
+            padding: 0;
+            margin-bottom: 100%;
+        }
+
+        .taskLine {
+            position: absolute;
+            top:0%;
+            left: 0%;
+            width: 318;
+            padding: 0;
+            height: 150%;
+            pointer-events: none;
+            user-select: none;
+            border-right: 3px dashed rgb(131, 131, 131);
+            z-index: -1;
+        } 
+
+        .taskLineAnimation {
+            position: absolute;
+            top: 0%;
+            left: 0%;
+            width: 318;
+            padding: 0;
+            height: 100%;
+            pointer-events: none;
+            user-select: none;
+            border-right: 3px solid white;
+            border-image: linear-gradient(315deg,#42d392 25%,#647eff) 1; 
+
+            opacity: 1;
+            z-index: 1;
+} 
+
+
+        p.task {
+            text-align: right;
+            width: 94%;
+            margin-right: 10%;
+            margin-bottom: 0;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            height: 1.5em;
+        }
+
+        .task-table span {
+            text-align: right;
+            margin-right: 5%;
+            opacity: 0.7;
+            font-weight: normal;
+            width: 98%;
+            display: block;
+            margin-bottom: 10%;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            height: 2rem;
+        }
+
+        .task-table tr , .task-table th {
+            width: 100%;
+            display: block
+        }
+
+        .task-table tbody {
+            width: 100%;
+            display: block;
+        }
+
+        .task::after {
+            content: "  ——";
+        }
+
+        p.oldTask::after {
+            content: "";
+        }
+
+        p.oldTask.task {
+            opacity: 0.5;
+            margin-right: 20%;
+            width: 80%;
+        }
+
+
+        .task-tips {
+            position: absolute;
+            bottom: 22.5%;
+            width: 93%;
+            text-align: center;
+            font-size: 1rem;
+            opacity: 0.7;
+        }
+
+        .taskTimeEnd {
+            text-align: center;
+            opacity: 0.7;
+            font-weight: lighter;
+            text-align: center;
+            width: 90%;
+        }
+
