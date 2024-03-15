@@ -12,6 +12,12 @@ module.exports = {
       "/stt/",
       "/out/",
       "/installer/"
+    ],
+    "protocols": [
+      {
+        "name": "ZERO CRUISE",
+        "schemes": ["zero"]
+      }
     ]
   },
   makers: [

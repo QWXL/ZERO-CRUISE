@@ -2,7 +2,7 @@
  * @Author: BuildTools unconfigured@null.spigotmc.org
  * @Date: 2024-01-31 23:44:44
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-03-07 17:42:11
+ * @LastEditTime: 2024-03-15 21:50:05
  * @FilePath: \cruise-client\preload.js
  */
 
@@ -41,6 +41,9 @@ contextBridge.exposeInMainWorld('api', {
   removeAllTasks: () => ipcRenderer.send('removeAllTasks'),
   allTask: () => ipcRenderer.invoke('allTask'),
   getTimeDiff: () => ipcRenderer.invoke('getTimeDiff'),
+  createNotification: (title,content) => ipcRenderer.invoke('createNotification', (title,content)),
+  openFile: (callback) => ipcRenderer.on('openFile', (_event,fileData) => callback(fileData)),
+  giftCode: (callback) => ipcRenderer.on('giftCode', (_event, code) => callback(code)),
 })
 ipcRenderer.on('localData', (_event, localData, version) => {
   console.log(localData)
@@ -69,7 +72,7 @@ ipcRenderer.on('localData', (_event, localData, version) => {
 
 ipcRenderer.on('first',() => {
   window.addEventListener('DOMContentLoaded', () => {
-  createChatBubble(getTime(),'letter',`欢迎使用 ZERO AI CRUISE 客户端！<br>在这里，你可以体验到与网站中截然不同的使用体验，比如：<br><br>1. 全新的语音输入系统；<br>2. [Alt]+[Space]随时唤出；<br>3. 存档自动备份，自动罗列；<br><br>and more ...<br><button class="btnInChat" style="margin-top:20px;padding:10px" id="refreshScreen(false,false)" onclick="">好耶！<span class="iconfont icon-icon_line_thumb-up closeHideBtn"></span></button>`)
+  appendChatBubble(getTime(),'letter',`欢迎使用 ZERO AI CRUISE 客户端！<br>在这里，你可以体验到与网站中截然不同的使用体验，比如：<br><br>1. 全新的语音输入系统；<br>2. [Alt]+[Space]随时唤出；<br>3. 存档自动备份，自动罗列；<br><br>and more ...<br><button class="btnInChat" style="margin-top:20px;padding:10px" id="refreshScreen(false,false)" onclick="">好耶！<span class="iconfont icon-icon_line_thumb-up closeHideBtn"></span></button>`)
   isFirst = true
   console.log(isFirst)
   })

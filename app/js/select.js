@@ -59,10 +59,13 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
       taskBtn.disabled = !cruiseModeSwitch.checked
       if (cruiseModeSwitch.checked) {
         taskBtn.title = `零个、一个或多个事项正在计时中…`
+        taskWarn.textContent = `零个、一个或多个事项正在计时中……`
       } else {
         taskBtn.title = `日程系统仅能在巡航模式下工作。`
+        taskWarn.textContent = `日程系统仅能在巡航模式下工作。`
         if ((await window.api.allTask()).length > 0) {
           taskBtn.title = `一个或多个事项正在计时中，但日程系统仅能在巡航模式下工作。`
+          taskWarn.textContent = `一个或多个事项正在计时中，但日程系统仅能在巡航模式下工作。`
         }
       }
      linkIO
@@ -74,6 +77,7 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
     localStorage.setItem('cruiseMode',false)
     taskBtn.disabled = true
     taskBtn.title = `日程系统仅能在巡航模式下工作。`
+    taskWarn.textContent = `日程系统仅能在巡航模式下工作。`
   }
     
   })
@@ -215,42 +219,53 @@ function toggleCodeMenu() {
   }
 }
 
-
+window.api.giftCode(async (code) => {
+  if (code) {
+    codeInput.value = code;
+    await GiftCode(true)
+  }
+})
 
 /**
  * GiftCode 函数检查礼品代码的有效性，并根据结果显示相应的消息。
  */
-function GiftCode() {
+async function GiftCode(doNotClose) {
+  return new Promise((resolve, reject) => {
+  let tempCodeBubble
   const code = codeInput.value
   if (code) {
-      const temp = createChatBubble('Waiting',"system",`正在核对你的兑换码信息。`)
+      tempCodeBubble = appendChatBubble('Waiting',"system",`正在核对你的兑换码信息。`)
       const status = document.getElementById('codeStatus')
       status.textContent = `请稍后，正在核对你的兑换码`
       status.style.backgroundColor = `black`
     axios.get(`${root_url}/code?id=${localStorage.getItem('id')}&code=${code}`)
     .then((res) => {
-      chatContainer.removeChild(temp)
+      chatContainer.removeChild(tempCodeBubble)
       const result = res.data;
       console.log(result)
       if (result.code == 200) {
         const gift = result.content.gift
-        createChatBubble(getTime(),'system',`使用兑换码成功！包含${giftsTypes[gift.type]}×${gift.time}小时（${(gift.time / 24).toFixed(2)}天）<br>有效期至${result.content.time}`)
+        appendChatBubble(getTime(),'system',`使用兑换码成功！包含${giftsTypes[gift.type]}×${gift.time}小时（${(gift.time / 24).toFixed(2)}天）<br>有效期至${result.content.time}`)
         codeInput.value = ""
         status.textContent = ``
         status.backgroundColor = ``
-        toggleCodeMenu()
+        if (!doNotClose) toggleCodeMenu()
         getACCESS('giftCode',true)
       } else {
-        createChatBubble(getTime(),'system',`${result.content}`)
+        appendChatBubble(getTime(),'system',`${result.content}`)
       }
+      resolve(gift)
     })
     .catch((err) => {
-      chatContainer.removeChild(temp)
-      createChatBubble(getTime(),'error',`发生异常错误：${err.code}<br>请联系开发者。`)
+      chatContainer.removeChild(tempCodeBubble)
+      appendChatBubble(getTime(),'error',`发生异常错误：${err.code}<br>请联系开发者。`)
       codeInput.value = ""
       toggleCodeMenu()
+      reject(err)
     })
   }
+})
+
 }
 
 

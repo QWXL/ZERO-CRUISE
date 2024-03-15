@@ -335,6 +335,28 @@ a.openlogoBackground {
     .chatBubble.task::after {
         content: '';
     }
+
+    .clear {
+        background-color: transparent;  
+    }
+
+    .clear .chatBubbleWho {
+        display: none;
+    }
+
+    .clear .chatBubbleTime {
+        width: 72%;
+        text-align: center;
+    }
+
+    .clear .chatBubbleMessage {
+        text-align: center;
+        margin-top: 0;
+    }
+
+    .clear .chatBubbleMessage p {
+        margin: 8 0;
+    }
     
     .chatBubble {
         white-space: pre-line;
@@ -1509,6 +1531,10 @@ a.openlogoBackground {
     cursor: grab;
 }
 
+.saves-table .save:not([outputId]) {
+    cursor: pointer;
+}
+
 .saves-table .save[outputId]:active {
     cursor: grabbing;
 }
@@ -1709,6 +1735,19 @@ a.openlogoBackground {
             z-index: 114514;
         }
 
+        .task-warn {
+            position: fixed;
+            right: calc(50px + 2.5vw);
+            top:5.5vh;
+            z-index: 114514;
+            text-align: right;
+            color: #999;
+            user-select: none;
+            opacity: 0;
+        }
+
+
+
         #task-container {
             overflow-y: auto;
 
@@ -1727,7 +1766,7 @@ a.openlogoBackground {
             box-shadow: var(--shadow-elevation-medium);
         }
 
-        .task-button:disabled {
+        .task-button:disabled { 
             background-color: #333;
             cursor: not-allowed;
         }
@@ -1740,6 +1779,36 @@ a.openlogoBackground {
 
         .task-button:disabled .task-icon {
             color: gray;
+        }
+
+        .task-button:hover + .task-warn {
+            opacity: 1;
+        }
+
+        .task-icon {
+            font-size: 32 !important;
+            color: lightgray;
+            z-index: 1000;
+            position:relative;
+            margin: 0 auto
+            ;
+        }
+        
+        .task-button:hover {
+            background-color: rgb(70,70,70);
+            box-shadow: var(--shadow-elevation-high);
+        }
+
+        .task-button:hover .task-icon {
+            color: white;
+        }
+
+        .task-button:active {
+            background-color: rgb(50,50,50);
+        }
+
+        .task-button:active .task-icon {
+            color: black;
         }
 
         .task-container-wave {
@@ -1796,31 +1865,7 @@ a.openlogoBackground {
             }
           }
 
-        .task-icon {
-            font-size: 32 !important;
-            color: lightgray;
-            z-index: 1000;
-            position:relative;
-            margin: 0 auto
-            ;
-        }
-        
-        .task-button:hover {
-            background-color: rgb(70,70,70);
-            box-shadow: var(--shadow-elevation-high);
-        }
 
-        .task-button:hover .task-icon {
-            color: white;
-        }
-
-        .task-button:active {
-            background-color: rgb(50,50,50);
-        }
-
-        .task-button:active .task-icon {
-            color: black;
-        }
 
         .task-table {
             width: 90%;

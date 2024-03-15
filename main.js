@@ -2,11 +2,11 @@
  * @Author: QWXL@zero-ai.online
  * @Date: 2024-01-31 23:36:03
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-03-08 18:34:08
+ * @LastEditTime: 2024-03-15 21:48:59
  * @FilePath: \cruise-client\main.js
  */
 const electron = require('electron');
-const { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage, Notification, ipcMain, safeStorage, process, screen, shell, dialog, autoUpdater   } = electron
+const { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage, Notification, ipcMain, safeStorage, screen, shell, dialog, autoUpdater,powerMonitor   } = electron
 const processNode = require('node:process');
 const path = require('path');
 const fs = require('fs/promises')
@@ -21,6 +21,7 @@ const express = require('express');
 const appserver = express();
 const moment = require('moment');
 let clientData = null
+let win
 const store = new Store({
   name: 'data' // 更改存储文件名，默认是'config'
 });
@@ -55,6 +56,66 @@ const boolean = {
   false:false
 }
 
+
+
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('zero', process.execPath, [path.resolve(process.argv[1])])
+  }
+} else {
+  app.setAsDefaultProtocolClient('zero')
+}
+
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  app.exit()
+} else {
+  app.on('second-instance', async (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, we should focus our window.
+    if (win) {
+      if (!win.isVisible()) win.show()
+      win.webContents.send('windowShow',true)
+      win.setProgressBar(-1)
+      win.focus()
+      console.log(`win is true`)
+    } else {
+      console.log(`win is false`)
+    }
+    const arg = commandLine.pop().slice(0, -1).replace('zero://','')
+    if (arg.includes('[openHistroy]')) {
+      const url = decodeURI(arg.replace('[openHistroy]',''))
+    const data = await fs.readFile(`${url}`,'utf-8')
+    win.webContents.send('openFile',data)
+    console.log(data)
+    const notification = new Notification({
+      title: `读取存档成功！`,
+      body: `导出时间：${JSON.parse(data).outputTime}，条数：${JSON.parse(data).data.chat.length}`,
+    });
+    notification.show();
+    notification.on('click', () => {
+      if (!win.isVisible()) {
+        win.show()
+      }
+    })
+    } else if (arg.includes('[giftCode]')) {
+    const data = decodeURI(arg.replace('[giftCode]',''))
+    win.webContents.send('giftCode',data)
+    console.log(data)
+    const notification = new Notification({
+      title: `兑换兑换码成功！`,
+      body: `兑换码：${data}`,
+    });
+    notification.show();
+    notification.on('click', () => {
+      if (!win.isVisible()) {
+        win.show()
+      }
+    })
+    }
+  })
+}
+
 fs.cp(path.join(__dirname,'killSttProcess.cmd'), path.join(app.getPath('temp'),'cruise','killSttProcess.cmd'));
 exec(path.join(app.getPath('temp'),'cruise','killSttProcess.cmd'))
 
@@ -84,7 +145,7 @@ app.setLoginItemSettings({
 const createMainWindow = () => {
   const mainLogo = nativeImage.createFromPath('./favicon.png')
   let { x, y } = store.get('windowPosition', { x: undefined, y: undefined });
-    const win = new BrowserWindow({
+    const window = new BrowserWindow({
       width: 1200,
       height: 800,
       show: false,
@@ -106,21 +167,47 @@ const createMainWindow = () => {
       }
     });
   
-    win.loadFile(path.join(__dirname, 'app', 'index.html'))
-    win.once('ready-to-show', () => {
-      win.show()
-      sortEveryTasks(win)
+    window.loadFile(path.join(__dirname, 'app', 'index.html'))
+    window.once('ready-to-show', () => {
+      window.show()
+      sortEveryTasks(window)
     })    
-    global.win = win
-    window = win
-    win.setSkipTaskbar(true)
-    return win
+    global.win = window
+    win = window
+    window.setSkipTaskbar(true)
+    return window
   }
   
 
   app.disableHardwareAcceleration() // 关闭硬件加速 避免在集显电脑上无法渲染界面
   app.commandLine.appendSwitch('lang', 'zh-CN')
   app.whenReady().then(async () => {
+    const data = store.get('data')
+    if (data?.data) {
+    clientData = JSON.parse(safeStorage.decryptString(Buffer.from(data?.data))) 
+    } else {
+      clientData = null
+    }
+    const rootUrl = rootUrlStore.get('data')
+    if (clientData && rootUrl) {
+      clientData['root_url'] = rootUrl;
+      try {
+        // 阻塞等待 get 请求完成
+        await axios.get(`${rootUrl}/api/check`);
+        // 如果请求成功，则自然会继续执行后面的代码
+      } catch (error) {
+        // 如果请求失败，则捕获错误并显示错误提示框
+        await dialog.showMessageBox(null,{
+          message: `无法连接至设定的服务器地址：${rootUrl} \n（${error}）\n程序将退出。`,
+          title: "ZERO ERROR",
+          type: "error",
+          buttons: ["我知道了"]
+        })
+        app.exit()
+      }
+    } else if (clientData) {
+      clientData['root_url'] = null
+    }
     let win = createMainWindow()
     if (!app.isPackaged) {
     win.webContents.openDevTools()
@@ -247,12 +334,13 @@ const createMainWindow = () => {
           await fs.unlink(path.join(savesPath,`${oldName}.zero`))
         }  
       } catch (error) {
-        dialog.showMessageBox(win,{
+        await dialog.showMessageBox(win,{
           message: `系统出现问题：${error}`,
           title: "ZERO ERROR",
           type: "warning",
           buttons: ["我知道了"]
         })
+        app.quit()
       }    
       })
 
@@ -260,12 +348,13 @@ const createMainWindow = () => {
         try {
         await fs.unlink(path.join(savesPath,`${fileName}.zero`))
         } catch (error) {
-          dialog.showMessageBox(win,{
+          await dialog.showMessageBox(win,{
             message: `系统出现问题：${error}`,
             title: "ZERO ERROR",
             type: "warning",
             buttons: ["我知道了"]
           })
+          app.quit()
         }
       })
 
@@ -275,12 +364,13 @@ const createMainWindow = () => {
           filedata.title = newTitle
           await fs.writeFile(path.join(savesPath,`${opid}.zero`),JSON.stringify(filedata,null,2))
           } catch (error) {
-            dialog.showMessageBox(win,{
+            await dialog.showMessageBox(win,{
               message: `系统出现问题：${error}`,
               title: "ZERO ERROR",
               type: "warning",
               buttons: ["我知道了"]
             })
+            app.quit()
           }
       })
 
@@ -302,12 +392,13 @@ const createMainWindow = () => {
           try {
           resolve(readAndSortTitlesByIds())
           } catch {
-            dialog.showMessageBox(win,{
+            await dialog.showMessageBox(win,{
               message: `系统出现问题：${error}`,
               title: "ZERO ERROR",
               type: "warning",
               buttons: ["我知道了"]
             })
+            app.quit()
           }
         })
       })
@@ -334,16 +425,7 @@ const createMainWindow = () => {
         return result
       })
 
-      const data = store.get('data')
-      if (data?.data) {
-      clientData = JSON.parse(safeStorage.decryptString(Buffer.from(data?.data))) 
-      } else {
-        clientData = null
-      }
-      const rootUrl = rootUrlStore.get('data')
-      if (rootUrl) {
-        clientData[`root_url`] = rootUrl
-      }
+
       console.log(clientData)
       if (clientData) {
         win.webContents.send('localData',clientData,app.isPackaged ? app.getVersion() : `[unPackaged] ${app.getVersion()}`)
@@ -544,15 +626,24 @@ if (boolean[clientData?.sttp ?? "true"]) {
    });
 
   } else {
-    dialog.showMessageBox(win,{
+    await dialog.showMessageBox(win,{
       message: `端口6301被占用！请尝试关闭残留程序或重启电脑解决问题。`,
       title: "ZERO ERROR",
       type: "error",
       buttons: ["我知道了"]
     })
+    app.quit()
   }
   
 }
+
+powerMonitor.on('suspend',() => {
+  app.relaunch()
+})
+
+powerMonitor.on('resume',() => {
+  app.quit()
+})
 
   ipcMain.on('taskPush', async (event,object) => {
     let newObject = JSON.parse(object)
@@ -592,21 +683,23 @@ if (boolean[clientData?.sttp ?? "true"]) {
         },
      };
      axios(config)
-     .catch((err) => {
-        dialog.showMessageBox(win,{
+     .catch( async (err) => {
+        await dialog.showMessageBox(win,{
           message: `系统出现问题：${err}`,
           title: "ZERO ERROR",
           type: "warning",
           buttons: ["我知道了"]
         })
+        app.exit()
      })
       } catch (error) {
-        dialog.showMessageBox(win,{
+        await dialog.showMessageBox(win,{
           message: `系统出现问题：${error}`,
           title: "ZERO ERROR",
           type: "warning",
           buttons: ["我知道了"]
         })
+        app.quit()
       }
   })
 
@@ -624,12 +717,13 @@ if (boolean[clientData?.sttp ?? "true"]) {
      };
      axios(config)
         } catch (error) {
-        dialog.showMessageBox(win,{
+        await dialog.showMessageBox(win,{
           message: `系统出现问题：${error}`,
           title: "ZERO ERROR",
           type: "warning",
           buttons: ["我知道了"]
         })
+        app.quit()
       }
   })
 
@@ -644,12 +738,13 @@ appserver.post('/stt/', async (req,res) => {
   if (await checkPortAvailable(6302)) {
   appserver.listen('6302')
   } else {
-    dialog.showMessageBox(win,{
+    await dialog.showMessageBox(win,{
       message: `端口6302被占用！请尝试关闭残留程序或重启电脑解决问题。`,
       title: "ZERO ERROR",
       type: "error",
       buttons: ["我知道了"]
     })
+    app.quit()
   }
 
 
@@ -694,15 +789,15 @@ async function checkPortAvailable(port) {
     const host = '127.0.0.1';
 
     // 使用portscanner检测指定端口状态。
-    portscanner.checkPortStatus(port, host, (error, status) => {
+    portscanner.checkPortStatus(port, host, async (error, status) => {
         if (error) {
-          dialog.showMessageBox(win,{
+          await dialog.showMessageBox(win,{
             message: `系统出现问题：${error}`,
             title: "ZERO ERROR",
             type: "warning",
             buttons: ["我知道了"]
           })
-            reject(error);
+          reject(error);
         }
 
         // 如果状态为'closed'，则表示该端口未被使用且可用。
@@ -792,6 +887,26 @@ ipcMain.handle('getTimeDiff', () => {
   return getTimeDiff(targetTime)
 })
 
+
+ipcMain.handle('createNotification', (event,title,content) => {
+  const notification = new Notification({
+    title: `${title}`,
+    body: `${content}`,
+  });
+  notification.show();
+  notification.on('click', () => {
+    if (!win.isVisible()) {
+      win.show()
+    }
+  })
+  return notification
+})
+
+
+
+
+
+
 })
 
 
@@ -840,7 +955,7 @@ function getMostRecentPastObject() {
   let pastObjects = []
 
   for (i = 0; i < tasksArray.length; i++) {
-    if (getTimeDiff(tasksArray[i].time) < 5) {
+    if (getTimeDiff(tasksArray[i]?.time) < 5) {
       pastObjects.push(tasksArray[i])
     }
   }

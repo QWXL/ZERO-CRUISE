@@ -25,7 +25,6 @@ const inputButton = document.getElementById('input-button')
 let chatContainer = document.getElementById('chat')
 const main = document.getElementById('main')
 const tokens = document.getElementById('tokens')
-const Logo = document.getElementById('actaLogo')
 const HeaderTime = document.getElementById('HeaderTime')
 const body = document.getElementById('body')
 const netStauts = document.getElementById('netStauts')
@@ -40,6 +39,7 @@ const PromptInput = document.getElementById('prompt-input');
 const savesContainer = document.getElementById('saves-container')
 const mainScreen = document.getElementById('mainScreen')
 const taskTable = document.getElementById('task-table')
+const taskWarn = document.getElementById('task-warn')
 document.getElementById("versionSpan").textContent = sessionStorage.getItem('version');
 let editedMessage = [] // 定义一个数组，临时存放编辑消息的eid，当被编辑的消息正处于等待回复的状态时，屏蔽下一次的消息，等待后一次的消息
 let taskList = []
@@ -64,7 +64,8 @@ const nameList = {
     "system":"ZERO 管理员",
     "error":"<s>ZERO AI</s>",
     "letter":"属于你的信",
-    "task":"ZERO AI 日程提醒"
+    "task":"ZERO AI 日程提醒",
+    "clear":"静默消息"
 }
 
 const boolean = {
@@ -269,13 +270,13 @@ async function inputByUser(message,audio) {
         tag = 'custom'
     }
     if (token >= maxTokens) {
-        createChatBubble(getTime(),'error',`你的当前使用Token(${token})已超出当前用户组可使用Token(${maxTokens})，请刷新后重试。`,tag)
+        appendChatBubble(getTime(),'error',`你的当前使用Token(${token})已超出当前用户组可使用Token(${maxTokens})，请刷新后重试。`,tag)
         return
     }
     if (message) {
-    createChatBubble(getTime(),'user',message,tag,`prompt-${mid}`,(chatLog.length - 1))
+    appendChatBubble(getTime(),'user',message,tag,`prompt-${mid}`,(chatLog.length - 1))
     }
-    tempBubble = createChatBubble('Connecting','assistant',"<div class=\"chatLoader\"></div>",tag)
+    tempBubble = appendChatBubble('Connecting','assistant',"<div class=\"chatLoader\"></div>",tag)
     window.scrollTo({
         top: window.scrollY + tempBubble.clientHeight,
         behavior: "smooth"
@@ -357,7 +358,7 @@ async function inputByUser(message,audio) {
                 }
             }*/
             console.log(data)
-            createChatBubble(result.AISend.time,result.AISend.user,result.AISend.content,tag)
+            appendChatBubble(result.AISend.time,result.AISend.user,result.AISend.content,tag)
             try {
     chatContainer.removeChild(tempBubble)
      } catch {}
@@ -369,7 +370,7 @@ async function inputByUser(message,audio) {
 
         }).catch ((err) => {
             console.log(err)
-            createChatBubble(getTime(),'error','客户端系统出现错误，代码：' + err.code,tag)     
+            appendChatBubble(getTime(),'error','客户端系统出现错误，代码：' + err.code,tag)     
             try {
     chatContainer.removeChild(tempBubble)
      } catch {}
@@ -454,11 +455,11 @@ function parseResult(result) {
         const match = result.AISend.content.match(regex);
         console.log(match)
         const hidesContent = match[0].replace('<hide>',`<br><button class="btnInChat" id="btnHide-${getTime()}" onclick="toggleHide('${getTime()}')">显示思考过程 <span class="iconfont icon-chevron_right closeHideBtn"></button><hide id="hide-${getTime()}">`).replace('</hide>','<br></hide><br><br>');
-       const chatBubble = createChatBubble(result.AISend.time,result.AISend.user,result.AISend.content.replaceAll(`${match[0]}`,''),tag ,result.mid,chatIndex,true,false,nim)
+       const chatBubble = appendChatBubble(result.AISend.time,result.AISend.user,result.AISend.content.replaceAll(`${match[0]}`,''),tag ,result.mid,chatIndex,true,false,nim)
        chatBubble.lastElementChild.innerHTML = hidesContent + chatBubble.lastElementChild.innerHTML
        resultBubble = chatBubble
     } else {
-    resultBubble = createChatBubble(result.AISend.time,result.AISend.user,content,tag,result.mid,chatIndex,true,false,nim)
+    resultBubble = appendChatBubble(result.AISend.time,result.AISend.user,content,tag,result.mid,chatIndex,true,false,nim)
     }
 
     try {
@@ -589,9 +590,9 @@ function toggleHide(time) {
 
 
 /**
- * `createChatBubble` 函数创建一个具有指定时间、发送者、内容、标签和元素 ID 的聊天气泡元素，并将其自动附加至`chatContainer`容器中。
+ * `appendChatBubble` 函数创建一个具有指定时间、发送者、内容、标签和元素 ID 的聊天气泡元素，并将其自动附加至`chatContainer`容器中。
  * @param {string} time - 创建聊天气泡的时间，应遵循`YYYY-MM-DD HH:mm:ss`的格式，如果不规定它，则默认采用调用时间。
- * @param {string} who - `who`参数代表聊天气泡的发送者，规定该气泡的样式。它可以是以下多个值的任意一个：`user`,`assistant`,`system`,`error`,`letter`。
+ * @param {string} who - `who`参数代表聊天气泡的发送者，规定该气泡的样式。它可以是以下多个值的任意一个：`user`,`assistant`,`system`,`error`,`letter`或`clear`。
  * @param {HTMLString | string} content - `content` 参数代表聊天气泡的消息内容。它可以是一个`String`或`HTMLString`（只有当`who !== "user" || security == true`时，才会解析HTMLString）。
  * @param {string?} tag - `tag` 参数用于指定聊天气泡的标签。它可以具有三个可能的值：`plus`、`custom`或`normal`。这些值用于在助理消息旁边显示标签。
  * @param {string?} eid - `eid` 参数是一个可选参数，表示聊天气泡的 ID。它用于唯一地标识每个聊天气泡元素。如果提供，聊天气泡元素将具有指定的 ID。
@@ -606,9 +607,9 @@ function toggleHide(time) {
         chatBubbleTime,
         chatBubbleWho,
         chatBubbleTag
-    ]`，否则，包括chatBubble元素本身。
+    ]`，否则，则返回chatBubble元素本身。
  */
-function createChatBubble(time,who,content,tag,eid,chatIndex,security,array,extraElement) { 
+function appendChatBubble(time,who,content,tag,eid,chatIndex,security,array,extraElement) { 
     let chatBubbleTag = null;
     if (!time || typeof time !== 'string') {
         time = getTime()
@@ -625,8 +626,6 @@ function createChatBubble(time,who,content,tag,eid,chatIndex,security,array,extr
     const chatBubbleTime = document.createElement('p')
     const chatBubbleMessage = document.createElement('div')
     chatBubble.setAttribute('chatIndex',chatIndex)
-
-
     chatBubble.classList.add('chatBubble')
     chatBubble.classList.add(who)
     const markString = marked.parse(message);
@@ -813,7 +812,7 @@ function mobileCheck() {
 
 
 
-function createWeatherCube(parentElement) {
+function createWeatherCube() {
     if (document.getElementById('he-plugin-standard')) {
         const p = document.createElement('p')
         document.getElementById('he-plugin-standard').replaceWith(p)
@@ -856,9 +855,9 @@ function createWeatherCube(parentElement) {
     weatherCubeScriptSec.src = "https://widget.qweather.net/standard/static/js/he-standard-common.js?v=2.0"
     const weatherDiv = document.createElement('div')
     weatherDiv.id = 'he-plugin-standard'
-    parentElement.appendChild(weatherDiv)
-    parentElement.appendChild(weatherCubeScriptFirst)
-    parentElement.appendChild(weatherCubeScriptSec)
+    document.appendChild(weatherCubeScriptFirst)
+    document.appendChild(weatherCubeScriptSec)
+    return weatherDiv
 }
 )}
 
@@ -966,12 +965,12 @@ socket.on(`message-${localStorage.getItem('id')}`, (arg) => {
             parseResult(result.content)
         }
         else if (result.type == 'ban') {
-            createChatBubble(getTime(),'error','你已被后台管理员封禁！请前往官方群（572900734）申诉后解封。')     
+            appendChatBubble(getTime(),'error','你已被后台管理员封禁！请前往官方群（572900734）申诉后解封。')     
             return
         } else if (result.type == 'err') {
-            createChatBubble(result.time,result.user,result.content)
+            appendChatBubble(result.time,result.user,result.content)
         } else {
-        createChatBubble(result.time,result.role,result.content)
+        appendChatBubble(result.time,result.role,result.content)
         }
 });
 
@@ -1040,7 +1039,7 @@ function checkDoc() {
     const docVersion = localStorage.getItem("docVersion")
     if (docVersion < version) {
         let id = `C${createCode()}`
-        const chatBubble = createChatBubble(getTime(),'system',`Hello! 我们的使用声明进行了调整与升级，或者你这是第一次打开，请戳→<a style='text-decoration:underline;' href="./doc.html">显示使用声明</a><br>然后！继续使用 ZERO AI 服务将被视为同意使用声明。<br>悄咪咪告诉你！这条系统消息不会被 AI 视作会话记录的一部分，当然如果你看它不爽也可以直接点下方按钮删掉。`,null,null,null,false,true)
+        const chatBubble = appendChatBubble(getTime(),'system',`Hello! 我们的使用声明进行了调整与升级，或者你这是第一次打开，请戳→<a style='text-decoration:underline;' href="./doc.html">显示使用声明</a><br>然后！继续使用 ZERO AI 服务将被视为同意使用声明。<br>悄咪咪告诉你！这条系统消息不会被 AI 视作会话记录的一部分，当然如果你看它不爽也可以直接点下方按钮删掉。`,null,null,null,false,true)
         chatBubble[0].id = id
         chatBubble[1].appendChild(createFunctionButton(null,'',`refreshScreen()`,`知道了呢！ <span class="iconfont icon-sure closeHideBtn"></span>`))
         localStorage.setItem("docVersion",version)
@@ -1134,16 +1133,16 @@ async function getACCESS(message,UG,releasingOption) {
                     showId.textContent = `ID:　#${res.content}`
                     sessionStorage.setItem('access',res.access)
                     setPlusModeSwitch(res.plus)
-                    createChatBubble(getTime(),'system',res.text)
+                    appendChatBubble(getTime(),'system',res.text)
                     sessionStorage.setItem('plusTime',plusTime)
                 } else if (res.code == 400) {
                     sessionStorage.setItem('access',res.access)
-                    createChatBubble(getTime(),'system',res.content)
+                    appendChatBubble(getTime(),'system',res.content)
                     showId.textContent = `ID:　#${localStorage.getItem('id')}`
                     setPlusModeSwitch(res.plus)
                     sessionStorage.setItem('plusTime',plusTime)
                 } else if (res.code == 403) {
-                    createChatBubble(getTime(),'system',`你已被服务端标记为违规封禁，请加官方群（572900734）申诉解决。`)
+                    appendChatBubble(getTime(),'system',`你已被服务端标记为违规封禁，请加官方群（572900734）申诉解决。`)
                     setPlusModeSwitch(false)
                     showId.innerHTML = `<s>ID:　#${localStorage.getItem('id')}</s>`
                     socket.disconnect()
@@ -1204,8 +1203,8 @@ function showUGAlert(message) {
 
 const options = document.getElementById('select-container').getElementsByClassName('option')
 const selectOptions = Array.from(options)
-function releasingOptions() {
 
+function releasingOptions() {
     selectOptions.forEach(option => {
         option.classList.remove('option')
     })
@@ -1315,12 +1314,15 @@ document.getElementById('lockOptions').classList.remove('notEnabled')
          // 初始化taskbtn
         if (cruiseModeSwitch.checked) {
             taskBtn.title = `零个、一个或多个事项正在计时中…`
+            taskWarn.textContent = `零个、一个或多个事项正在计时中…`
             taskBtn.disabled = false
         } else {
             taskBtn.disabled = true
             taskBtn.title = `日程系统仅能在巡航模式下工作。`
+            taskWarn.textContent = `日程系统仅能在巡航模式下工作。`
             if ((await window.api.allTask()).length > 0) {
                   taskBtn.title = `一个或多个事项正在计时中，但日程系统仅能在巡航模式下工作。`
+                  taskWarn.textContent = `一个或多个事项正在计时中，但日程系统仅能在巡航模式下工作。`
                 }
             }
       }
@@ -1402,10 +1404,10 @@ async function inputChat(fileData) {
         // 在这里可以处理解析后的JSON内容
         chatLog = jsonContent.data.chat
         if (!jsonContent.data.cruise) {
-        createChatBubble(getTime(),'system',`以下内容为用户 I#${jsonContent.data.createBy} 于 ${jsonContent.outputTime} 保存的会话记录。<br>请不要点击任何会话中的超链接或任何可疑的可点击元素。我们不能保证该会话记录是否已被恶意窜改。<br>如有上述情况，请及时与我们反馈（qwxl@zero-ai.online）。`)
+        appendChatBubble(getTime(),'system',`以下内容为用户 I#${jsonContent.data.createBy} 于 ${jsonContent.outputTime} 保存的会话记录。<br>请不要点击任何会话中的超链接或任何可疑的可点击元素。我们不能保证该会话记录是否已被恶意窜改。<br>如有上述情况，请及时与我们反馈（qwxl@zero-ai.online）。`)
         document.getElementById('nowTitle').textContent = `[存档] *来自网页端*`    
         } else {
-            createChatBubble(getTime(),'system',`存档备注：${jsonContent.title}<br>存档日期：${jsonContent.outputTime}<br>存档ID：${jsonContent.outputID}<br>对话条数：${jsonContent.data.chat.length}`)
+            appendChatBubble(getTime(),'system',`存档备注：${jsonContent.title}<br>存档日期：${jsonContent.outputTime}<br>存档ID：${jsonContent.outputID}<br>对话条数：${jsonContent.data.chat.length}`)
             document.getElementById('nowTitle').textContent = `[存档] ${jsonContent.title}`
         }
         chatContainer.innerHTML += jsonContent.data.element
@@ -1413,7 +1415,7 @@ async function inputChat(fileData) {
         chatContainer.style.height = jsonContent.data.height
         document.getElementById('saveNow').setAttribute('readSaves','true')
     } catch (error) {
-        createChatBubble(getTime(),'error',`你提交的会话记录读取失败！错误：${error}`)
+        appendChatBubble(getTime(),'error',`你提交的会话记录读取失败！错误：${error}`)
     }
     };
   
@@ -1430,7 +1432,7 @@ async function inputChat(fileData) {
 
 
 function consoleWarn() {
-    createChatBubble(getTime(),'system','系统检测到你当前已打开浏览器控制台，根据<b>《用户使用声明》</b>相关规定，为保证用户与我们双方利益，已经对当前会话进行了紧急掐停。<br>请主动关闭浏览器控制台，我们有权封停您的账户。')
+    appendChatBubble(getTime(),'system','系统检测到你当前已打开浏览器控制台，根据<b>《用户使用声明》</b>相关规定，为保证用户与我们双方利益，已经对当前会话进行了紧急掐停。<br>请主动关闭浏览器控制台，我们有权封停您的账户。')
     chatLog = []
     sessionStorage.setItem('access','')
     let config = {
@@ -1446,13 +1448,13 @@ function consoleWarn() {
         timeout: 3600000
     }
     axios(config)
-    let temp1 = createChatBubble(getTime(),'system','3秒后强制刷新页面。<br>请主动关闭浏览器控制台。')
+    let temp1 = appendChatBubble(getTime(),'system','3秒后强制刷新页面。<br>请主动关闭浏览器控制台。')
     setTimeout(() => {
         chatContainer.removeChild(temp1)
-        let temp2 = createChatBubble(getTime(),'system','2秒后强制刷新页面。<br>请主动关闭浏览器控制台。')
+        let temp2 = appendChatBubble(getTime(),'system','2秒后强制刷新页面。<br>请主动关闭浏览器控制台。')
         setTimeout(() => {
             chatContainer.removeChild(temp2)
-            let temp3 = createChatBubble(getTime(),'system','1秒后强制刷新页面。<br>请主动关闭浏览器控制台。')
+            let temp3 = appendChatBubble(getTime(),'system','1秒后强制刷新页面。<br>请主动关闭浏览器控制台。')
             setTimeout(() => {
                 chatContainer.removeChild(temp3)
                 window.location.reload()
@@ -1463,11 +1465,11 @@ function consoleWarn() {
 
 
 /**
- * 函数`createErrBubble`将提供的参数添加功能性按钮后转发至`createChatBubble`函数。
- * @param {string?} time - `time` 参数是创建的时间，这与`createChatBubble`的同名参数相同。
- * @param {string} who - `who` 参数是创建的身份，这与`createChatBubble`的同名参数相同。
- * @param {string} content - `content` 参数是创建的内容，这与`createChatBubble`的同名参数相同。
- * @param {string?} tag - `tag` 参数是创建的标签，这与`createChatBubble`的同名参数相同。
+ * 函数`createErrBubble`将提供的参数添加功能性按钮后转发至`appendChatBubble`函数。
+ * @param {string?} time - `time` 参数是创建的时间，这与`appendChatBubble`的同名参数相同。
+ * @param {string} who - `who` 参数是创建的身份，这与`appendChatBubble`的同名参数相同。
+ * @param {string} content - `content` 参数是创建的内容，这与`appendChatBubble`的同名参数相同。
+ * @param {string?} tag - `tag` 参数是创建的标签，这与`appendChatBubble`的同名参数相同。
  * @param {string} type - `type`参数用于确定当点击气泡内按钮时要采取的操作。它可以具有三个可能的值：`resend`、`access`、`relink`或`restart`。
  * 
  * 注：单次会话中只能存在一个`type == 'restart'`的功能气泡，新添加的`restart`功能气泡将替换旧的并处在最新位置。
@@ -1478,7 +1480,7 @@ function createErrBubble(time,who,content,tag,type) {
     let bubble
     if (type !== 'restart') {
         const button = createFunctionButton('err',randomId,`reSend('${randomId}','${type || 'all'}')`,`重试 <span class="iconfont icon-ic_Refresh closeHideBtn"></span>`)
-        const errBubble = createChatBubble(time,who,content,tag,randomId,null,false,true)
+        const errBubble = appendChatBubble(time,who,content,tag,randomId,null,false,true)
         errBubble[1].appendChild(button)
         bubble = errBubble
     } else {
@@ -1486,7 +1488,7 @@ function createErrBubble(time,who,content,tag,type) {
         if (document.getElementById('restartWarning')) {
             chatContainer.removeChild(document.getElementById('restartWarning'))
         }
-        bubble = createChatBubble(time,who,content,tag,`restartWarning`,null,false,true)
+        bubble = appendChatBubble(time,who,content,tag,`restartWarning`,null,false,true)
         bubble[1].appendChild(button)
         }
     return bubble
@@ -1503,7 +1505,7 @@ async function reSend(errorBubbleId,type) {
     if (type == 'resend') {
         inputByUser()
     } else if (type == 'access') {
-        tempBubble = createChatBubble('Connecting','assistant',"<div class=\"chatLoader\"></div>")
+        tempBubble = appendChatBubble('Connecting','assistant',"<div class=\"chatLoader\"></div>")
         getACCESS(`重新申请`,false)
         .then(() => {
             try {
@@ -1513,7 +1515,7 @@ async function reSend(errorBubbleId,type) {
     } else if (type == 'relink') {
         linkIO()
     } else {
-        tempBubble = createChatBubble('Connecting','assistant',"<div class=\"chatLoader\"></div>")
+        tempBubble = appendChatBubble('Connecting','assistant',"<div class=\"chatLoader\"></div>")
         linkIO()
         getACCESS(`重新申请`)
         .then((plus) => {
@@ -1666,9 +1668,23 @@ function addSaveToList(title,opid,time) {
         th.appendChild(buttonDiv)
         th.setAttribute('title',time)
         tr.appendChild(th);
-
+        tr.style.opacity = 0
         const histroyLine = document.getElementById('histroyLine')
         histroyLine.insertAdjacentElement('afterend',tr)
+        tr.animate(
+            [
+              // keyframes
+              { opacity: 0 },
+              { opacity: 1 },
+            ],
+            {
+              // timing options
+              duration: 100,
+            },
+          );
+          setTimeout(() => {
+            tr.style.opacity = 1
+          }, 100);
         return th
 }
 
@@ -1718,7 +1734,20 @@ function addSaveFile() {
 
 function delSaveFile(opid) {
     const ele = document.getElementById(`output-${opid}`).parentElement
-    ele.remove()
+    ele.animate(
+        [
+          // keyframes
+          { opacity: 1 },
+          { opacity: 0 },
+        ],
+        {
+          // timing options
+          duration: 100,
+        },
+      );
+    setTimeout(() => {
+        ele.remove()
+    }, 100);
     document.getElementById('histroyCount').textContent = Number(document.getElementById('histroyCount').textContent) - 1
     window.api.delSaveFile(opid)
 }
@@ -1772,10 +1801,10 @@ window.api.sttProcess((object) => {
             }
             break;
         case "error":
-            createChatBubble(getTime(),'error',`来自语音输入模块的报错：${object.content}`)
+            appendChatBubble(getTime(),'error',`来自语音输入模块的报错：${object.content}`)
             break;
         case "failed":
-            createChatBubble(getTime(),'error',`语音输入模块已崩溃：code ${object.content}`)
+            appendChatBubble(getTime(),'error',`语音输入模块已崩溃：code ${object.content}`)
             sttInfo.textContent = `模块崩溃`
             sttInfo.style.color = `red`
             sttStat = false
@@ -1807,7 +1836,7 @@ function startSound2Text() {
     useStt = true
     sttProcessInfo.style.color = `rgb(255,255,255)`
     sttType.textContent = `聆听中...释放开始处理`
-    tempSttBubble = createChatBubble('正在聆听...','user',"<div class=\"chatLoader\"></div>",null,null,null,false)
+    tempSttBubble = appendChatBubble('正在聆听...','user',"<span class=\"iconfont icon-yuyin\" style=\"display: inline-block;font-size: 38;\"></span><div class=\"chatLoader\" style=\"display: inline-block;\"></div>",null,null,null,false)
 }
 }
 
@@ -2012,7 +2041,7 @@ window.api.pastTask(async (object) => {
     axios(config).then(async (response) => {
         if (response.data !== 'Ticking') { 
 
-    createChatBubble(object.time,'system',`[日程提醒] <b>${object.title}</b> 已被触发！快去做事吧！<br>`,null,null,null,true,false,createNotifactionInMessage(`<em style=\"opacity:0.8\">${object.content ?? ''}<em>`,3))
+    appendChatBubble(object.time,'system',`[日程提醒] <b>${object.title}</b> 已被触发！快去做事吧！<br>`,null,null,null,true,false,createNotifactionInMessage(`<em style=\"opacity:0.8\">${object.content ?? ''}<em>`,3))
 }
 document.getElementById('oldTask').innerHTML = `<s>${object.title}</s>`;
 document.getElementById('oldTaskSpan').innerHTML = `${object.time} <br> ${object.content ?? ''}`;
@@ -2140,3 +2169,45 @@ async function resetTabelMargin() {
       
           return messageTip
       }
+
+
+    window.api.openFile((fileData) => {
+        try {
+            refreshScreen()
+            document.getElementById('refreshIcon').classList.remove('icon-ic_Refresh') 
+            document.getElementById('refreshIcon').classList.add('icon-shanchu-delete') 
+            const jsonContent = JSON.parse(fileData);
+            timeTitle = false   
+            chatContainer.innerHTML = ''
+            HeaderTime.textContent = `会话存档于：${jsonContent.outputTime}`
+            // 在这里可以处理解析后的JSON内容
+            chatLog = jsonContent.data.chat
+            if (!jsonContent.data.cruise) {
+            appendChatBubble(getTime(),'system',`以下内容为用户 I#${jsonContent.data.createBy} 于 ${jsonContent.outputTime} 保存的会话记录。<br>请不要点击任何会话中的超链接或任何可疑的可点击元素。我们不能保证该会话记录是否已被恶意窜改。<br>如有上述情况，请及时与我们反馈（qwxl@zero-ai.online）。`)
+            document.getElementById('nowTitle').textContent = `[存档] *来自网页端*`    
+            } else {
+                appendChatBubble(getTime(),'system',`存档备注：${jsonContent.title}<br>存档日期：${jsonContent.outputTime}<br>存档ID：${jsonContent.outputID}<br>对话条数：${jsonContent.data.chat.length}`)
+                document.getElementById('nowTitle').textContent = `[存档] ${jsonContent.title}`
+            }
+            chatContainer.innerHTML += jsonContent.data.element
+            token = jsonContent.data.tokens
+            chatContainer.style.height = jsonContent.data.height
+            document.getElementById('saveNow').setAttribute('readSaves','true')
+        } catch (error) {
+            appendChatBubble(getTime(),'error',`你提交的会话记录读取失败！错误：${error}`)
+        }
+    })
+
+
+
+    setInterval(() => {
+        if (chatContainer.childElementCount > 0) {
+            mainScreen.style.backgroundImage = ''
+        } else {
+            if (plus) {
+                mainScreen.style.backgroundImage = `url('./AKETA SPACE GOLD.webp')`
+            } else {
+                mainScreen.style.backgroundImage = `url('./AKETA SPACE-Fixed.webp')`
+            }
+        }
+    }, 1000);
