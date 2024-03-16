@@ -1,3 +1,4 @@
+
 module.exports = {
   packagerConfig: {
     asar: true,
@@ -13,12 +14,6 @@ module.exports = {
       "/out/",
       "/installer/"
     ],
-    "protocols": [
-      {
-        "name": "ZERO CRUISE",
-        "schemes": ["zero"]
-      }
-    ]
   },
   makers: [
     {
