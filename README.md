@@ -13,7 +13,7 @@ ZERO AI的桌面级客户端，提供与网页端截然不同的使用体验。<
 <br>
 <h2>开发组</h2>
 秋晚夕落 @QWXL : ZERO AI 主要开发者、项目牵头者；<br>
-秋婉梦淑 @usnDream : ZERO AI 主要开发者；<br>
+秋婉梦淑 @Chumenta : ZERO AI 主要开发者；<br>
 零 AI : ZERO AI 主要设计师；<br>
 芙宁娜 @KOKOMI12345 : ZERO AI Cruise 语音输入模块主要开发者<br>
 <br>
