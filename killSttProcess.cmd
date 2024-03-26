@@ -1,2 +1,2 @@
-taskkill /im stt_process.exe /F
+taskkill /im sttProcess.exe /F
 exit

@@ -7,6 +7,12 @@ thinkModeSwitch.checked = boolean[localStorage.getItem('think') || 'false']
 cruiseModeSwitch.checked = boolean[localStorage.getItem('cruiseMode') || 'false']
 leftSaveModeSwitch.checked = boolean[localStorage.getItem('saveWhenLeft') || 'false']
 sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
+log(5,`Set cruiseMode mode: ${cruiseMode}`)
+log(5,`Set plus mode: ${plus}`)
+log(5,`Set think mode: ${think}`)
+log(5,`Set saveWhenLeft mode: ${saveWhenLeft}`)
+log(5,`Set stt mode: ${sttModeSwitch.checked}`)
+
   // 设置 Plus 模式开关状态的函数
 /**
  * 函数“setPlusModeSwitch”根据“isEnabled”的值启用或禁用开关，并相应地更新徽标和令牌计数。
@@ -14,6 +20,7 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
  * 模式开关。如果“isEnabled”为“true”，则加号模式开关将启用，用户可以选择它。如果 isEnabled 为 false，则 plus 模式开关将被禁用，并且
  */
   function setPlusModeSwitch(isEnabled) {
+    log(5,`Set plus mode: ${isEnabled}`)
     // 如果 isEnabled 为 true，则设置为可选择
     plusModeSwitch.disabled = !isEnabled;
     cruiseModeSwitch.disabled = !isEnabled;
@@ -42,6 +49,7 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
       
   thinkModeSwitch.addEventListener("change",(event) => {
     if (thinkModeSwitch.checked !== think) {
+      log(5, `Set think mode: ${thinkModeSwitch.checked}`)
       refreshScreen()
       think = thinkModeSwitch.checked
       localStorage.setItem('think',think)
@@ -52,6 +60,7 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
   cruiseModeSwitch.addEventListener("change", async (event) => {
     if (plusPermission) {
     if (cruiseModeSwitch.checked !== cruiseMode) {
+      log(5, `Set cruise mode: ${cruiseMode.checked}`)
       cruiseMode = cruiseModeSwitch.checked;
       localStorage.setItem('cruiseMode',cruiseModeSwitch.checked);
       cruiseModeSwitch.disabled = !plusPermission;
@@ -68,7 +77,7 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
           taskWarn.textContent = `一个或多个事项正在计时中，但日程系统仅能在巡航模式下工作。`
         }
       }
-     linkIO
+     linkIO()
     }
   } else {
     cruiseModeSwitch.disabled = true
@@ -93,7 +102,7 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
   }
 
 /**
- * 函数“testPlusMode”用于处理切换加模式开关时的逻辑和行为。
+ * 函数“testPlusMode”用于处理切换Plus模式开关时的逻辑和行为。
  */
   function testPlusMode() {
     if (plus !== plusModeSwitch.checked) {
@@ -112,7 +121,10 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
   localStorage.setItem("think",thinkModeSwitch.checked)
   localStorage.setItem("cruiseMode",cruiseModeSwitch.checked)  
   localStorage.setItem("sttp",sttModeSwitch.checked)
-
+  log(5,`Set cruiseMode mode: ${cruiseMode}`)
+  log(5,`Set plus mode: ${plus}`)
+  log(5,`Set think mode: ${think}`)
+  log(5,`Set stt mode: ${sttModeSwitch.checked}`)
   plus = plusModeSwitch.checked
   think = thinkModeSwitch.checked
   cruiseMode = cruiseModeSwitch.checked
@@ -128,7 +140,8 @@ sttModeSwitch.checked = boolean[localStorage.getItem('sttp') || 'true']
 
   sttModeSwitch.addEventListener("change", (event) => {
     localStorage.setItem('sttp',sttModeSwitch.checked)
-      createErrBubble(getTime(),'system',`重启以应用该操作。`,null,'restart')
+    log(5,`Set stt mode: ${sttModeSwitch.checked}`)
+    createErrBubble(getTime(),'system',`重启以应用该操作。`,null,'restart')
   })
 
   const selectContainer = document.getElementById('select-container')
@@ -238,6 +251,7 @@ async function GiftCode(doNotClose) {
       const status = document.getElementById('codeStatus')
       status.textContent = `请稍后，正在核对你的兑换码`
       status.style.backgroundColor = `black`
+      log(5,`Checking gift code ${code}`)
     axios.get(`${root_url}/code?id=${localStorage.getItem('id')}&code=${code}`)
     .then((res) => {
       chatContainer.removeChild(tempCodeBubble)
@@ -245,6 +259,7 @@ async function GiftCode(doNotClose) {
       console.log(result)
       if (result.code == 200) {
         const gift = result.content.gift
+        log(5,`Gift code ${code} is valid: ${JSON.stringify(gift)}`)
         appendChatBubble(getTime(),'system',`使用兑换码成功！包含${giftsTypes[gift.type]}×${gift.time}小时（${(gift.time / 24).toFixed(2)}天）<br>有效期至${result.content.time}`)
         codeInput.value = ""
         status.textContent = ``
@@ -252,11 +267,13 @@ async function GiftCode(doNotClose) {
         if (!doNotClose) toggleCodeMenu()
         getACCESS('giftCode',true)
       } else {
+        log(2,`Gift code ${code} is invalid`)
         appendChatBubble(getTime(),'system',`${result.content}`)
       }
       resolve(gift)
     })
     .catch((err) => {
+      log(3,`Checking gift code ${code} error: ${err}`)
       chatContainer.removeChild(tempCodeBubble)
       appendChatBubble(getTime(),'error',`发生异常错误：${err.code}<br>请联系开发者。`)
       codeInput.value = ""
@@ -292,12 +309,14 @@ function togglePromptMenu() {
 function setPrompt() {
   const input = PromptInput.value
   localStorage.setItem('customPrompt',input)
+  log(5,`Set custom prompt to ${input}`)
   window.location.reload()
 }
 
 
 function ToggleleftSaveMode() {
   localStorage.setItem('saveWhenLeft',leftSaveModeSwitch.checked)
+  log(5,`Set leftSave mode to ${leftSaveModeSwitch.checked}`)
 }
 
 

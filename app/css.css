@@ -357,6 +357,7 @@ a.openlogoBackground {
     .clear .chatBubbleMessage p {
         margin: 8 0;
     }
+
     
     .chatBubble {
         white-space: pre-line;
@@ -401,14 +402,10 @@ a.openlogoBackground {
     
 
     
-    
-    .cantSend {
+    .input-container textarea:disabled, .input-container textarea:disabled+.task-button {
         background-color: #444 !important;
     }
     
-    .cantSend:hover {
-        background-color: #444 !important;
-    }
     
     .named {
         text-align: center;
@@ -498,7 +495,7 @@ a.openlogoBackground {
         background-color: rgba(230,10,10,0.5);
         border-radius: 5px;
         margin-right: 2%;
-        width: 100%;
+        width: 71vw;
         
     }
     
@@ -840,6 +837,7 @@ a.openlogoBackground {
         border-radius: 3px;
         z-index: 1145141919810;
         box-shadow: var(--shadow-elevation-medium);
+        overflow-y: auto;
     }
     
     
@@ -1311,13 +1309,13 @@ a.openlogoBackground {
         border-top-right-radius: 0;
         width: 90%;
         display: block;
-        font-size: 12;
+        font-size: 0.9rem;
         white-space: pre;
     }
     
     .preTitle {
         width: 90%;
-        height: 13px;
+        height: 1.1rem;
         background-color: rgb(49,49,49);
         border: rgb(49,49,49) solid 7px;
         border-top-left-radius: 10px;
@@ -1333,7 +1331,7 @@ a.openlogoBackground {
         margin-top: 2px;
         padding-left: 0;
         color: rgb(230,230,230);
-        font-size: 12;
+        font-size: 1rem;
         width: 30%;
         text-align: left;
         display: inline-block;
@@ -1343,7 +1341,7 @@ a.openlogoBackground {
         display: inline-flex;
         background-color: transparent;
         border: 0;
-        font-size: 12;
+        font-size: 1rem;
         color: white;
         text-align: right;
         justify-content:end;
@@ -1592,6 +1590,12 @@ a.openlogoBackground {
     font-weight: bold;
 }
 
+.saves-table .bubble.cancelDrag {
+    display: block;
+    position: absolute;
+    bottom: 2.5rem;
+    background-color: rgb(150,150,50);
+}
 
 
 .clear-button {
@@ -1696,6 +1700,7 @@ a.openlogoBackground {
     height: 27%;
     position: absolute;
     top:0rem;
+    background-color: rgba(68, 68, 68, 0.4) /* 对应#444 */;
   }
 
   .lockOptions .loaderAnimation {
@@ -1709,9 +1714,12 @@ a.openlogoBackground {
     opacity: 0.7;
   }
 
+  .lockOptions.notEnabled{
+    display: none;
+  }
+
   .lockOptions.notEnabled div{
     animation-play-state: paused;
-    display: none;
   }
 
   input.switchWait + label {
@@ -1967,5 +1975,13 @@ a.openlogoBackground {
             font-weight: lighter;
             text-align: center;
             width: 90%;
+        }
+
+
+        code:not([class*=language-]) {
+            font-family: monospace;
+            background-color: rgba(100,100,100,0.2);
+            margin: 2px 8px;
+            outline: rgba(100,100,100,0.2) solid 4px;
         }
 

@@ -2,7 +2,7 @@
  * @Author: 秋晚夕落 qwxl@zero-ai.online
  * @Date: 2024-02-01 21:22:51
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-03-14 23:22:50
+ * @LastEditTime: 2024-03-20 01:28:41
  * @FilePath: \cruise-client\app\index.html
 -->
 <html>
@@ -235,7 +235,13 @@ function sleep(ms) {
   </tr>
   <tr>
     <th colspan="2">
-      <p class="th-label" id="oneText" style="opacity: 0.7;font-weight: lighter;word-wrap:break-word;width: 25vw;">欢迎使用巡航客户端！<br>这里仍在加载中……</p>
+      <p class="th-label" id="oneText" style="opacity: 0.7;font-weight: lighter;word-wrap:break-word;width: 25vw;height: 120px;overflow-y: auto;">欢迎使用巡航客户端！<br>这里仍在加载中……</p>
+    </th>
+  </tr>
+  <tr>
+    <th colspan="2">
+      <hr>
+      <p class="th-label" id="cruiseBulletin" style="opacity: 0.7;font-weight: lighter;word-wrap:break-word;width: 25vw;height: 30px;overflow-y: auto;text-align: center;"></p>
     </th>
   </tr>
   <tfoot>
@@ -244,11 +250,7 @@ function sleep(ms) {
       <button class="small-button" style="width: 80%;margin-left: 10%;margin-bottom: 8px;border-radius: 6px;padding: 0.3rem;" id="backToIndex" onclick="window.api.openWebsite();">访问官网 <span class="iconfont icon-shouye-home btn-icon" id=""></span></button>
     </th>
   </tr>
-  <tr>
-    <th colspan="2">
-      <p class="th-label" id="cruiseBulletin" style="opacity: 0.7;font-weight: lighter;word-wrap:break-word;width: 25vw;"></p>
-    </th>
-  </tr>
+
   </tfoot>
   </table>
   <button class="clear-button stopProcessBtn" onclick="window.api.closeProcess()"><span class="iconfont icon-tuichu btn-icon stopProcessBtn"  id=""></span></button>
@@ -330,8 +332,15 @@ function sleep(ms) {
     <tr>
       <th style="text-align: center;opacity: 0.7;">当前有 <span id="histroyCount">0</span> 个存档</th>
     </tr>
+    <tr>
+    <th class="bubble save cancelDrag" id="cancelDrag" style="margin-top: 0;display: grid; grid-template-columns: 8fr 2fr; display: none;">
+      <p class="iconfont icon-guanbi"> 取消拖拽</p>
+    </th>
+    </tr>
     </tbody>
+
   </table>
+
   </div>
 
 

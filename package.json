@@ -1,6 +1,6 @@
 {
   "name": "cruise-client",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "ZERO AI On Windows Client",
   "main": "main.js",
   "scripts": {
@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "axios": "^1.6.7",
+    "electron-dl": "^3.5.2",
     "electron-events": "^0.2.0",
     "electron-localshortcut": "^3.2.1",
     "electron-prompt": "^1.7.0",
@@ -40,6 +41,7 @@
     "portscanner": "^2.2.0",
     "range": "^0.0.3",
     "semver": "^7.6.0",
-    "window-shortcuts": "^0.4.0"
+    "window-shortcuts": "^0.4.0",
+    "windows-shortcuts": "^0.1.6"
   }
 }

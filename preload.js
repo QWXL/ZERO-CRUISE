@@ -2,22 +2,24 @@
  * @Author: BuildTools unconfigured@null.spigotmc.org
  * @Date: 2024-01-31 23:44:44
  * @LastEditors: 秋晚夕落 qwxl@zero-ai.online
- * @LastEditTime: 2024-03-15 21:50:05
+ * @LastEditTime: 2024-03-25 17:21:15
  * @FilePath: \cruise-client\preload.js
  */
 
 const { contextBridge, ipcRenderer } = require('electron/renderer')
 let isFirst = false
 
-contextBridge.exposeInMainWorld('api', {
+contextBridge.exposeInMainWorld('api', { 
+  allReady: () => ipcRenderer.send('allReady'), // 渲染完毕
   newMessage: (messageObject) => ipcRenderer.send('newMessage', messageObject),
   onWindowShow: (callback) => ipcRenderer.on('windowShow', (_event, value) => callback(value)),
   beforeQuit: (callback) => ipcRenderer.on('before-quit', (_event, value) => callback(value)), 
   sttProcess: (callback) => ipcRenderer.on('sttProcess', (_event, object) => callback(object)), 
   setData: (dataJson) => ipcRenderer.send('setData', dataJson),
   openWebsite: () => ipcRenderer.send('openWebsite'),
-  closeProcess: () => ipcRenderer.send('closeProcess'),
   openGithub: () => ipcRenderer.send('openGithub'),
+  openReleasePage: (version) => ipcRenderer.send('openReleasePage', version),
+  closeProcess: () => ipcRenderer.send('closeProcess'),
   clientKey: () => ipcRenderer.invoke('systemInfo'),
   getSavesData: () => ipcRenderer.invoke('getSavesData'),
   startDrag: (fileName) => ipcRenderer.send('ondragstart', fileName),
@@ -29,7 +31,6 @@ contextBridge.exposeInMainWorld('api', {
   stopStt: () => ipcRenderer.send('stopStt'),
   restart: () => ipcRenderer.send('app-restart'),
   updateListener: () => ipcRenderer.on('update', (object) => callback(object)),
-  isFirst: isFirst,
   quitAndInstall: () => ipcRenderer.send('quitAndInstall'),
   hideWindow: () => ipcRenderer.send('hideWindow'),
   taskPush: (object) => ipcRenderer.send('taskPush', object),
@@ -44,6 +45,14 @@ contextBridge.exposeInMainWorld('api', {
   createNotification: (title,content) => ipcRenderer.invoke('createNotification', (title,content)),
   openFile: (callback) => ipcRenderer.on('openFile', (_event,fileData) => callback(fileData)),
   giftCode: (callback) => ipcRenderer.on('giftCode', (_event, code) => callback(code)),
+  first: (callback) => ipcRenderer.on('first', () => callback()),
+  closeAndUpdate: () => ipcRenderer.send('closeAndUpdate'),
+  tryToUpdate: () => ipcRenderer.send('tryToUpdate'),
+  updateVersion: (callback) => ipcRenderer.on('updateVersion', (_event,version) => callback(version)),
+  downloadProgress: (callback) => ipcRenderer.on('downloadProgress',(_event,data) => callback(data)),
+  log: (level,message,from,tick) => ipcRenderer.send('log', level,message,from,tick),
+  showError: (title,content,detail) => ipcRenderer.invoke('showError', title,content,detail),
+  isFirst: isFirst
 })
 ipcRenderer.on('localData', (_event, localData, version) => {
   console.log(localData)
@@ -70,11 +79,6 @@ ipcRenderer.on('localData', (_event, localData, version) => {
   }
 })
 
-ipcRenderer.on('first',() => {
-  window.addEventListener('DOMContentLoaded', () => {
-  appendChatBubble(getTime(),'letter',`欢迎使用 ZERO AI CRUISE 客户端！<br>在这里，你可以体验到与网站中截然不同的使用体验，比如：<br><br>1. 全新的语音输入系统；<br>2. [Alt]+[Space]随时唤出；<br>3. 存档自动备份，自动罗列；<br><br>and more ...<br><button class="btnInChat" style="margin-top:20px;padding:10px" id="refreshScreen(false,false)" onclick="">好耶！<span class="iconfont icon-icon_line_thumb-up closeHideBtn"></span></button>`)
+ipcRenderer.on('first', () => {
   isFirst = true
-  console.log(isFirst)
-  })
 })
-

@@ -6,11 +6,10 @@
 // 秋晚夕落 版权所有
 
 
-
 // 秋晚夕落 版权所有
 
 const root_url = localStorage.getItem('root_url') || "https://chat.zero-ai.online"
-
+const log = window.api.log
 
 window.api.beforeQuit((value) => {
     if (value) {
@@ -39,15 +38,17 @@ const PromptInput = document.getElementById('prompt-input');
 const savesContainer = document.getElementById('saves-container')
 const mainScreen = document.getElementById('mainScreen')
 const taskTable = document.getElementById('task-table')
-const taskWarn = document.getElementById('task-warn')
+const taskWarn = document.getElementById('task-warn');
+const cancelDrag = document.getElementById('cancelDrag')
+log(1,'Start preload.') 
 document.getElementById("versionSpan").textContent = sessionStorage.getItem('version');
 let editedMessage = [] // 定义一个数组，临时存放编辑消息的eid，当被编辑的消息正处于等待回复的状态时，屏蔽下一次的消息，等待后一次的消息
 let taskList = []
 let plusPermission = false
 body.style.minHeight = '100vh'
 function showLoadLabel(text) {
-    const loadLabel = document.getElementById('loadLabel') || {textContent:""}
-    loadLabel.textContent = text
+    const loadLabel = document.getElementById('loadLabel') || {innerHTML:""}
+    loadLabel.innerHTML = text
 }
 let customPrompt = false 
 let maxTokens = 16385
@@ -77,7 +78,7 @@ const boolean = {
     false:false
 }
 let chatCount = 0
-let canSend = true
+input.disabled = false
 let FreeAPIapply = false
 
 String.prototype.trim = function (char, type) {
@@ -96,6 +97,7 @@ String.prototype.trim = function (char, type) {
 
 axios.get(`https://zero-ai.online/api/onetext?count=2`)
 .then ((res) => {
+    log(1,'Get oneText.')
     const string = res.data.split('\n')
     input.setAttribute('placeholder',string[0].trim('n', 'right'))
     document.getElementById('oneText').textContent = string[1].trim('n', 'right')
@@ -106,6 +108,7 @@ let socket = linkIO()
 
  function linkIO() {
     try {
+        log(1,`Create socket conect to: ${root_url}/`)
     const Osocket = io(`${root_url}/`,{
         query: {
             id: localStorage.getItem('id') ?? '',
@@ -119,14 +122,17 @@ let socket = linkIO()
     netStauts.textContent = `正在链接`
     if (window.socket?.connected || false) {
         window.socket?.disconnect();
+        log(1,`Relink.`)
         netStauts.textContent = `正在重连`
     } 
     if (Osocket?.connected || false) {
         Osocket?.disconnect();
+        log(1,`Relink.`)
         netStauts.textContent = `正在重连`
     }  
     Osocket.connect()
     if (Osocket.connected) {
+        log(1,`SocketIO connect.`)
         netStauts.textContent = `链接正常`
         netStauts.style.color = `rgba(242,242,242,0.7)`
     }
@@ -138,6 +144,7 @@ let socket = linkIO()
     sockets(Osocket)
     return Osocket
 } catch (e) {
+    log(3, `Create socketIO error: ${e}`)
     console.error(e)
     createErrBubble(getTime(),'error',`在尝试链接至服务端时出现问题：${e}，请重试或联系开发者。`,null,'relink')
 }
@@ -175,6 +182,7 @@ const markedOptions = {
 axios.get('https://ipapi.co/json/').then((response) => {
     const ip = response.data.ip
     sessionStorage.setItem('ip',ip)
+    log(5,`IP: ${ip}`)
     if ( localStorage.getItem('root_url')) {
         showLoadLabel(`连接至服务器……(${root_url})`)
     } else {
@@ -253,9 +261,13 @@ let tempBubble
  * @param {boolean} audio - “audio”参数指示这条消息是否由 Sound 2 Text 程序填充
  * @returns 该函数没有 return 语句，因此它不会显式返回任何内容。
  */
-async function inputByUser(message,audio) {
+async function 
+inputByUser(message,audio) {
     const mid = createCode()
+
     if (message) {
+        log(5,`User Input Message Id: ${mid}`)
+        log(5,`User Input: ${message} (${audio})`)
     chatLog.push({"role":"user","content":`${message}`})
     if (document.getElementById('saveNow').getAttribute('readSaves')) {
     document.getElementById('saveNow').removeAttribute('readSaves')
@@ -270,20 +282,20 @@ async function inputByUser(message,audio) {
         tag = 'custom'
     }
     if (token >= maxTokens) {
+        log(3,`Token Limit.`)
         appendChatBubble(getTime(),'error',`你的当前使用Token(${token})已超出当前用户组可使用Token(${maxTokens})，请刷新后重试。`,tag)
         return
     }
     if (message) {
     appendChatBubble(getTime(),'user',message,tag,`prompt-${mid}`,(chatLog.length - 1))
     }
-    tempBubble = appendChatBubble('Connecting','assistant',"<div class=\"chatLoader\"></div>",tag)
+    tempBubble = appendChatBubble('Connecting','assistant',"<div class=\"chatLoader\"></div>",tag,'tempBubble')
     window.scrollTo({
         top: window.scrollY + tempBubble.clientHeight,
         behavior: "smooth"
     });
-    canSend = false
-    input.classList.add('cantSend');
-    inputButton.classList.add('cantSend');
+    input.disabled = true
+
     input.setAttribute('placeholder','滴滴滴…请等待响应……')
     if (timeTitle == true) {
         timeTitle = false
@@ -293,6 +305,7 @@ async function inputByUser(message,audio) {
         }
     if (!FreeAPIapply) {
     // 如果启用自由接口功能，那么就不向服务器发送请求，转而本地使用用户提供的API处理
+    log(5,`FreeAPI is on!`)
     let url = `${root_url}/ai`
     if (plus) {
             url = `${root_url}/ai/plus`
@@ -329,7 +342,7 @@ async function inputByUser(message,audio) {
         } else if (response.data !== "Forbidden") {
             createErrBubble(getTime(),'error',`链接出现错误，来自服务端的回复：${JSON.stringify(response.data?.AISend?.content || response)} <br>请联系开发者或重试。`)     
             try {
-    chatContainer.removeChild(tempBubble)
+    if (tempBubble) chatContainer.removeChild(tempBubble)
      } catch {}
             input.setAttribute('placeholder','滴滴滴…连接丢失，请稍后重试……')
         }
@@ -337,7 +350,7 @@ async function inputByUser(message,audio) {
             console.log(err)
             createErrBubble(getTime(),'error',`链接出现错误，代码：${err.code}(${err.message}) <br>请联系开发者。`)     
             try {
-    chatContainer.removeChild(tempBubble)
+    if (tempBubble) chatContainer.removeChild(tempBubble)
      } catch {}
             input.setAttribute('placeholder','滴滴滴…连接丢失，请稍后重试……')
         })
@@ -360,19 +373,18 @@ async function inputByUser(message,audio) {
             console.log(data)
             appendChatBubble(result.AISend.time,result.AISend.user,result.AISend.content,tag)
             try {
-    chatContainer.removeChild(tempBubble)
+    if (tempBubble) chatContainer.removeChild(tempBubble)
      } catch {}
             chatContainer.scrollTop = chatContainer.scrollHeight
-            canSend = true
-            input.classList.remove('cantSend');
-            inputButton.classList.remove('cantSend');
+            input.disabled = false
+
             input.setAttribute('placeholder','滴滴滴，当前功能已被禁用。')
 
         }).catch ((err) => {
             console.log(err)
             appendChatBubble(getTime(),'error','客户端系统出现错误，代码：' + err.code,tag)     
             try {
-    chatContainer.removeChild(tempBubble)
+    if (tempBubble) chatContainer.removeChild(tempBubble)
      } catch {}
             input.setAttribute('placeholder','滴滴滴…连接丢失，请稍后重试……')
         })
@@ -385,6 +397,7 @@ async function inputByUser(message,audio) {
  * @returns 函数“parseResult”不返回任何内容（未定义）。
  */
 function parseResult(result) {
+    log(5,`Parse result!`)
     const chatIndex = addContentToChatLog({"role":"assistant","content":result.AISend.content}) 
     let tag = 'normal'
     if (plus) {
@@ -406,13 +419,15 @@ function parseResult(result) {
    document.getElementById('createBtn').disabled = false
    if (result.AISend.user == 'error') { 
     createErrBubble(getTime(),'error',result.AISend.content,tag)     
+    log(3,`Parse error: ${result.AISend.content}`)
     try {
-    chatContainer.removeChild(tempBubble)
+    if (tempBubble) chatContainer.removeChild(tempBubble)
      } catch {}
     input.setAttribute('placeholder','滴滴滴…连接丢失，请稍后重试……')
     return
     }
-    if (editedMessage.includes(`${result.mid.replace('ai-','')}`)) {
+    if (editedMessage.includes(`${result.mid?.replace('ai-','')}`)) {
+        log(2, `Edited ignore mid: ${result.mid}`)
         console.log(`edited ignore ${result.mid}`)
         editedMessage.splice(editedMessage.indexOf(result.mid),1)
         return
@@ -420,28 +435,33 @@ function parseResult(result) {
     let nim = ''
     if (result.task && cruiseMode) {
         window.api.taskPush(result.task)
+        log(1, `Append Task: ${JSON.stringify(result.task)}`)
         nim = createNotifactionInMessage(`已经成功的添加了一个提醒！`,2)
 
     }
     if (result.removeTask && cruiseMode) {
         if (result.removeTask == 'All') {
             removeAllTasks()
+            log(1, `Remove all Tasks.`)
             nim = createNotifactionInMessage(`已经成功的删除了全部提醒！`,2)
         } else {
         removeTask(result.removeTask)
+        log(1, `Remove Task.`)
         nim = createNotifactionInMessage(`已经成功的删除了一个提醒！`,2)
     }
 
     }
 
     if (result.taskDone) {
+        log(1, `Task Done: ${JSON.stringify(result.taskDone)}`)
         nim = createNotifactionInMessage(`触发了日程：${result.taskDone.title}（${result.taskDone.time}）<br><em style=\"opacity:0.8\">${result.taskDone.content ?? ''}<em>`,2)
     }
 
     if (result.err) {
+        log(3,`Server error: ${result.err}`)
         createErrBubble(getTime(),'error','系统出现错误，代码：' + result.err + '<br>请联系开发者。',tag)     
        try {
-    chatContainer.removeChild(tempBubble)
+    if (tempBubble) chatContainer.removeChild(tempBubble)
      } catch {}
        return
     }
@@ -451,6 +471,7 @@ function parseResult(result) {
     let content = result.AISend.content
     window.api.newMessage({content:content})
     if (result.AISend.content.includes('<hide>')) {
+        log(1,`Enable think parse mode.`)
         const regex = /<hide>(.*)<\/hide>/gs;
         const match = result.AISend.content.match(regex);
         console.log(match)
@@ -463,10 +484,11 @@ function parseResult(result) {
     }
 
     try {
-    chatContainer.removeChild(tempBubble)
+    if (tempBubble) chatContainer.removeChild(tempBubble)
      } catch {}
     if (!result.AISend.content.includes('[control:weather]')) {
         if (result.memory) {
+            log(1,`Append memory: ${JSON.stringify(result.memory)}`)
             let newMemory
             let memory = localStorage.getItem('memory')
             if (memory) {
@@ -478,14 +500,13 @@ function parseResult(result) {
            localStorage.setItem('memory',JSON.stringify(newMemory))
         }
     } else {
+        log(1,`Show weather.`)
         chatLog.push({"role":"assistant","content":`[为用户显示了天气预报界面]`})
     }
+    log(5, `Used ${result.usages.total} tokens.`)
     tokens.textContent = `Tokens:${result.usages.total}/${maxTokens}`
     token = result.usages.total
-    canSend = true
-
-    input.classList.remove('cantSend');
-    inputButton.classList.remove('cantSend');
+    input.disabled = false
     input.setAttribute('placeholder','滴滴滴…链接成功！继续输入以和零对话！')
         input.style.boxShadow = '0px 0px 10px 7px rgba(200, 200, 200, 0.5)'
         inputButton.style.boxShadow = '0px 0px 10px 7px rgba(200, 200, 200, 0.5)'
@@ -500,6 +521,7 @@ function parseResult(result) {
 }
 
 function startTimeInterval() {
+    log(5,`Start time interval.`)
 let timeInterval = setInterval(() => {
     let times = getTime(true)
     let string = ''
@@ -521,6 +543,7 @@ let timeInterval = setInterval(() => {
     }
         HeaderTime.textContent = getTime() + string
     if (timeTitle == false) {
+        log(5,`Stop time interval.`)
         clearInterval(timeInterval)
     }
 }, 1000);
@@ -540,6 +563,7 @@ setInterval(() => {
  */
 function addContentToChatLog(object) {
     let content = object.content
+    log(5,`Append chat log: ${JSON.stringify(object.object)}`)
     console.log(content)
     if (think) {
         if (content.includes('<hide>')) {
@@ -611,6 +635,7 @@ function toggleHide(time) {
  */
 function appendChatBubble(time,who,content,tag,eid,chatIndex,security,array,extraElement) { 
     let chatBubbleTag = null;
+    log(5,`appendChatBubble with args:\ntime:\"${time}\"\nwho:\"${who}\"\ncontent:\"${content}\"\ntag:\"${tag}\"\neid:\"${eid}\"\nchatIndex:${chatIndex}\nsecurity:${security}\narray:${array}\nextraElement:\"${extraElement?.toString()}\"\n`,`appendChatBubble`)
     if (!time || typeof time !== 'string') {
         time = getTime()
     }
@@ -685,7 +710,7 @@ function appendChatBubble(time,who,content,tag,eid,chatIndex,security,array,extr
     } else {
         chatBubbleMessage.innerHTML = inner
     }
-    if (message.includes('[control:weather]' && (who !== `user` || security == false))) {
+    if (message.includes('[control:weather]' && (who == `assistant` || security == false))) {
         createWeatherCube(chatBubble)
         chatBubbleMessage.textContent = ''
         chatBubbleMessage.innerHTML = ''
@@ -693,6 +718,10 @@ function appendChatBubble(time,who,content,tag,eid,chatIndex,security,array,extr
     let height = (Number(chatContainer.style.height.replaceAll('px','') || window.screen.availHeight) + chatBubble.getBoundingClientRect().height * 4) + 200
     console.log(height)
     chatContainer.style.height = `${height}px`
+    chatBubble.scrollIntoView({
+        behavior: 'smooth', // 定义滚动过渡效果为平滑过渡
+        block: 'center',    // 垂直方向上以元素的中心对齐到可视区域的中心
+      });
     mainScreen.style.backgroundImage = ''
     const preLagElements = chatBubbleMessage.getElementsByClassName(`preLeg${randomId}`)
     if (preLagElements) {
@@ -734,6 +763,7 @@ let oldMessageOfEdit = ``
  */
 
 function editMessage(pmid) {
+    log(1,`Try to edit message.`)
     const targetElement = document.getElementById(pmid);
     const oldElement = targetElement.getElementsByClassName('chatBubbleMessage')[0]
     const editBtn = document.getElementById(`editBtn-${pmid}`)
@@ -759,6 +789,7 @@ function editMessage(pmid) {
  * @returns `pmid` 参数的值。
  */
 function cancelEdit(pmid) {
+    log(1,`Cancel edit message.`)
     const editBtn = document.getElementById(`editBtn-${pmid}`)
     editBtn.style.display = 'block'
     const targetElement = document.getElementById(pmid);
@@ -789,11 +820,12 @@ function applyEdit(pmid) {
         }
     })
     chatLog.splice(Number(targetIndex) + 1)
+    log(1,`Apply edit message: ${tempTextInput.value}`)
     chatLog[Number(targetIndex)] = {role:"user", content:tempTextInput.value}
     if (tempBubble) {
         try {
         editedMessage.push(pmid.replace('prompt-',''))
-        chatContainer.removeChild(tempBubble)
+        if (tempBubble) chatContainer.removeChild(tempBubble)
         tempBubble = null
         } catch (error) {
             console.log(error)
@@ -813,6 +845,7 @@ function mobileCheck() {
 
 
 function createWeatherCube() {
+    log(5,`Create weather cube.`)
     if (document.getElementById('he-plugin-standard')) {
         const p = document.createElement('p')
         document.getElementById('he-plugin-standard').replaceWith(p)
@@ -908,10 +941,11 @@ function getTime(object) {
    * @param delFile - `delFile`参数是一个布尔值，指示函数是否要删除现在的会话存档，如果true则删除，false则不删除
    */
   function refreshScreen(relink,delFile) {
+    log(1,`Refresh screen.(relink: ${relink} | delFile: ${delFile})`)
     chatLog = []
     chatContainer.innerHTML = ''
     mainScreen.style.backgroundImage = ''
-    canSend = true
+    input.disabled = false
     if (plus) {
         mainScreen.style.backgroundImage = `url('./AKETA SPACE GOLD.webp')`
     } else {
@@ -948,12 +982,14 @@ function getTime(object) {
   
 socket.on(`cruiseBulletin`, (arg) => {
     console.log(arg)
+    log(5,`Get cruise bulletin: ${arg}`)
     document.getElementById('cruiseBulletin').textContent = arg
   
 })
 
 socket.on(`messageUnfit`, (arg) => {
     console.log(arg)
+    log(2,`User message has been reported.`)
     const message = document.getElementById(`prompt-${arg.mid}`)
     message.appendChild(createNotifactionInMessage(`这条发言似乎有一些问题，监管AI认为此条言论不合适或违反了我们的使用声明（${arg.result.evaluation}），我们已推送该消息至后台管理人员处理。（注：该功能仍在测试）`,1))
 });
@@ -961,6 +997,7 @@ socket.on(`messageUnfit`, (arg) => {
 socket.on(`message-${localStorage.getItem('id')}`, (arg) => {
     const result = arg
     console.log(result)
+    log(5,`Get message: ${arg}`)
         if (result.type == 'api') {
             parseResult(result.content)
         }
@@ -976,6 +1013,7 @@ socket.on(`message-${localStorage.getItem('id')}`, (arg) => {
 
 socket.on(`clearTempAccess`, (arg) => {
     const result = arg
+    log(5,`Clear temp access by server.`)
         if (result == sessionStorage.getItem('access')) {
             console.log(`收到了服务器发来的许可重置信息`)
             getACCESS()
@@ -983,16 +1021,19 @@ socket.on(`clearTempAccess`, (arg) => {
 });
 
 socket.on(`PlayersWarning`, (arg) => {
+    log(5,`Repeat login: ${arg} device.`)
     showLoadLabel(`重复登录，已终止链接！`)
     createErrBubble(getTime(),`error`,`你的ID在${arg}个不同设备（或你的不同浏览器页面）上被登录，为双方安全与利益着想，现已掐停所有设备的链接，请刷新会话重试。`,null,'relink')
-    canSend = false
+    input.disabled = true
 });
     
 socket.on("error", (error) => {
+    log(5,`Error by server: ${error}`)
 createErrBubble(getTime(),'error', error)
 });
 
 socket.on("connect", () => {
+    log(1,`Connect!`)
     if (socket.recovered) {
         console.log(`刚刚恢复了一次链接！`)
         getACCESS('重连')
@@ -1006,6 +1047,7 @@ socket.on("connect", () => {
   });
 
   socket.on('disconnect', () => {
+    log(2,`Disconnect!`)
     netStauts.textContent = `链接终止`
     netStauts.style.color = `rgba(242,242,0,0.7)`
     console.log(`链接终止！`)
@@ -1015,6 +1057,7 @@ socket.on("connect", () => {
   });
 
   socket.on('error', () => {
+    log(3,`Error!`)
     netStauts.textContent = `链接丢失`
     netStauts.style.color = `rgba(242,0,0,0.7)`
     console.log(`链接丢失！`)
@@ -1026,7 +1069,10 @@ socket.on("connect", () => {
   window.addEventListener('beforeunload', function (event) {
     socket.disconnect();
     if (boolean[localStorage.getItem('saveWhenLeft') || 'false'] && !document.getElementById('saveNow').getAttribute('readSaves')) {
+        log(1,`Save file when quit!`)
         saveFile(false,`[自动保存] `)
+        log(1,`[${tickCount}]Renderer tick is closed!`,'rendererTick',true)
+        log(1,`Stauts: ${tickCount} | ${tickOccupancyCount} | ${tickOccupancyCount ? `${(tickOccupancyCount / tickCount) * 100}%`:  '100%' }`)
     }
 })
 
@@ -1035,9 +1081,11 @@ socket.on("connect", () => {
 showLoadLabel('通知预检测……')
 
 function checkDoc() {
+    log(1,`Check user-document version.`)
     const version = 1.5
     const docVersion = localStorage.getItem("docVersion")
     if (docVersion < version) {
+        log(1,`User document version is lower than ${version}!`)
         let id = `C${createCode()}`
         const chatBubble = appendChatBubble(getTime(),'system',`Hello! 我们的使用声明进行了调整与升级，或者你这是第一次打开，请戳→<a style='text-decoration:underline;' href="./doc.html">显示使用声明</a><br>然后！继续使用 ZERO AI 服务将被视为同意使用声明。<br>悄咪咪告诉你！这条系统消息不会被 AI 视作会话记录的一部分，当然如果你看它不爽也可以直接点下方按钮删掉。`,null,null,null,false,true)
         chatBubble[0].id = id
@@ -1075,7 +1123,7 @@ async function checkACCESS() {
 }
 function createCuid() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+        var r = Math.random()*16|0, v = c == 'x' ? r:  (r&0x3|0x8);
         return v.toString(16);
     });
 }
@@ -1090,6 +1138,7 @@ function createCuid() {
  */
 async function getACCESS(message,UG,releasingOption) {
     return new Promise(async (resolve,rejects) => {
+        log(1,`Start get access!`)
         let config = {
             method: 'post',
             url: `${root_url}/uuid/login`,
@@ -1104,45 +1153,47 @@ async function getACCESS(message,UG,releasingOption) {
             },
             timeout: 36000000,
         }
+        log(1,`Post: ${config.url}`)
             axios(config)
             .then((resp) => {
+                log(5,`Get access: ${JSON.stringify(resp.data)}`)
                 showLoadLabel('获取访问许可……')
                 const showId = document.getElementById('showId')
                 const res = resp.data
                 const plusTime = res.plusTime || ''
                 console.log('尝试从服务端获取访问许可：' + res)
-                if (res.code == 200) {
+                if (res.code == 200) { // 登录成功
                     sessionStorage.setItem('access',res.access)
                     showId.textContent = `ID:　#${localStorage.getItem('id')}`
                     setPlusModeSwitch(res.plus)
                     sessionStorage.setItem('plusTime',plusTime)
-                } else if (res.code == 201) {
-                    localStorage.setItem('id',res.content)
+                } else if (res.code == 201) { // 下发新的ID
+                    res.content ? localStorage.setItem('id',res.content) : null
                     sessionStorage.setItem('access',res.access)
                     showId.textContent += res.content
                     sessionStorage.setItem('plusTime',plusTime)
                     setPlusModeSwitch(res.plus)
-                } else if (res.code == 500) {
+                } else if (res.code == 500) { // 身份校验失败
                     createErrBubble(getTime(),'error',res.content,'','access')
                     showId.innerHTML = `<s>ID:　#${localStorage.getItem('id')}</s>`
                     showId.opacity = `0.7`
                     sessionStorage.setItem('plusTime',plusTime)
                     socket.disconnect()
-                } else if (res.code == 202) {
-                    localStorage.setItem('id',res.content)
-                    showId.textContent = `ID:　#${res.content}`
+                } else if (res.code == 202) { // 下发新的ID，并显示服务端消息
+                    res.content ? localStorage.setItem('id',res.content) : null
+                    res.content ? showId.textContent = `ID:　#${res.content}` : null
                     sessionStorage.setItem('access',res.access)
                     setPlusModeSwitch(res.plus)
-                    appendChatBubble(getTime(),'system',res.text)
+                    appendChatBubble(getTime(),'clear',res.text)
                     sessionStorage.setItem('plusTime',plusTime)
-                } else if (res.code == 400) {
+                } else if (res.code == 400) { // Plus会员降级至Standard
                     sessionStorage.setItem('access',res.access)
-                    appendChatBubble(getTime(),'system',res.content)
+                    appendChatBubble(getTime(),'clear',res.content)
                     showId.textContent = `ID:　#${localStorage.getItem('id')}`
                     setPlusModeSwitch(res.plus)
                     sessionStorage.setItem('plusTime',plusTime)
-                } else if (res.code == 403) {
-                    appendChatBubble(getTime(),'system',`你已被服务端标记为违规封禁，请加官方群（572900734）申诉解决。`)
+                } else if (res.code == 403) { // ban
+                    appendChatBubble(getTime(),'clear',`你已被服务端标记为违规封禁，请加官方群（572900734）申诉解决。`)
                     setPlusModeSwitch(false)
                     showId.innerHTML = `<s>ID:　#${localStorage.getItem('id')}</s>`
                     socket.disconnect()
@@ -1162,6 +1213,7 @@ async function getACCESS(message,UG,releasingOption) {
                 thinkModeSwitch.disabled = !res.plus;
             }).catch((err) => {
                 rejects()
+                showLoadLabel('链接至服务器失败<br><a onclick=\"window.location.reload()\">重试</a>')
                 console.error(`upload info error:${err}`)
                 createErrBubble(getTime(),'system',`获取访问许可时出现错误：${err}`,'','access')
             })
@@ -1205,6 +1257,7 @@ const options = document.getElementById('select-container').getElementsByClassNa
 const selectOptions = Array.from(options)
 
 function releasingOptions() {
+    log(5,'Releasing options!')
     selectOptions.forEach(option => {
         option.classList.remove('option')
     })
@@ -1212,6 +1265,7 @@ function releasingOptions() {
 }
 
 function lockOptions () {
+    log(5,'Locking options!')
     selectOptions.forEach(option => {
         option.classList.add('option')
     })
@@ -1236,11 +1290,11 @@ document.getElementById('lockOptions').classList.remove('notEnabled')
         const availScreenHeight = window.screen.availHeight;
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
-            const canvasFingerprint = context ? context.canvas.toDataURL().replace('data:image/png;base64, ','') : null;
+            const canvasFingerprint = context ? context.canvas.toDataURL().replace('data:image/png;base64, ',''):  null;
             const gl = document.createElement('canvas').getContext('webgl');
-            const renderer = gl ? gl.getParameter(gl.RENDERER) : null;
-            const vendor = gl ? gl.getParameter(gl.VENDOR) : null;
-            const debugInfo = gl ? gl.getExtension('WEBGL_debug_renderer_info') : null;
+            const renderer = gl ? gl.getParameter(gl.RENDERER):  null;
+            const vendor = gl ? gl.getParameter(gl.VENDOR):  null;
+            const debugInfo = gl ? gl.getExtension('WEBGL_debug_renderer_info'):  null;
         const hardwareInfo = {
             deviceModel: navigator.deviceMemory,
             hardwareConcurrency: navigator.hardwareConcurrency,
@@ -1293,16 +1347,19 @@ document.getElementById('lockOptions').classList.remove('notEnabled')
       function onPageLoad() {
           console.log("页面加载完成！");
           windowLoaded = true; // 标记窗口已经装载完毕
-          
+        log(5,'Page loaded!')
           // 如果此时preload已经是false，则运行相关逻辑
           if (!preload) {
               runOnPreloadComplete();
+          } else {
+            log(5,'Waiting preload.')
           }
       }
       
       // 当预载和页面装载都准备好之后要执行的操作放在这里面。
       async function runOnPreloadComplete() {
         showLoadLabel('完成！');
+        log(5,`Loading complete!`)
         const animation = document.getElementById('readyOnLoadAnimation')
         animation.style.animationPlayState = 'paused';
         if (readyOnLoad) {
@@ -1312,6 +1369,7 @@ document.getElementById('lockOptions').classList.remove('notEnabled')
             }, 1000);
         }
          // 初始化taskbtn
+         try {
         if (cruiseModeSwitch.checked) {
             taskBtn.title = `零个、一个或多个事项正在计时中…`
             taskWarn.textContent = `零个、一个或多个事项正在计时中…`
@@ -1325,7 +1383,11 @@ document.getElementById('lockOptions').classList.remove('notEnabled')
                   taskWarn.textContent = `一个或多个事项正在计时中，但日程系统仅能在巡航模式下工作。`
                 }
             }
-      }
+            window.api.allReady()
+        } catch (e) {
+        log(3,`Initialisation task failed: ${e}`)
+    }
+}
       
       // 监听window.onload事件以判断页面是否加载完毕。
       if (document.readyState === "complete") { 
@@ -1337,9 +1399,11 @@ document.getElementById('lockOptions').classList.remove('notEnabled')
       function setPreload(newValue) {
          if (preload !== newValue) { // 检查新值与旧值是否不同（可选）
              preload = newValue;
-             
+            log(5,`Preloaded!`)
              if (!newValue && windowLoaded) { // 如果新值为false且窗口已装载
                  runOnPreloadComplete();
+             } else {
+                 log(5,`Waiting page load.`)
              }
          }
       }
@@ -1350,6 +1414,7 @@ document.getElementById('lockOptions').classList.remove('notEnabled')
  */
 async function outputChat() {
     const outputID = `${createCode()}${createCode()}`
+    log(5,`Output Chat: ${outputID}`)
     let data = {
        outputTime:getTime(),
        outputID:outputID,
@@ -1391,9 +1456,11 @@ async function inputChat(fileData) {
     const fileInput = document.getElementById('chatInput');
     file = fileInput.files[0];
     }
+    log(5,`Try to input chat.`)
     const reader = new FileReader();
     reader.onload = function(e) {
       try {
+        log(5,`Input chat file: ${e.target.result}`)
         refreshScreen()
         document.getElementById('refreshIcon').classList.remove('icon-ic_Refresh') 
         document.getElementById('refreshIcon').classList.add('icon-shanchu-delete') 
@@ -1424,7 +1491,7 @@ async function inputChat(fileData) {
 
       function createCode() {
         return 'xxxxxxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+            var r = Math.random()*16|0, v = c == 'x' ? r:  (r&0x3|0x8);
             return v.toString(16);
         });
      }
@@ -1432,6 +1499,7 @@ async function inputChat(fileData) {
 
 
 function consoleWarn() {
+    log(5,'Console Warn')
     appendChatBubble(getTime(),'system','系统检测到你当前已打开浏览器控制台，根据<b>《用户使用声明》</b>相关规定，为保证用户与我们双方利益，已经对当前会话进行了紧急掐停。<br>请主动关闭浏览器控制台，我们有权封停您的账户。')
     chatLog = []
     sessionStorage.setItem('access','')
@@ -1473,7 +1541,7 @@ function consoleWarn() {
  * @param {string} type - `type`参数用于确定当点击气泡内按钮时要采取的操作。它可以具有三个可能的值：`resend`、`access`、`relink`或`restart`。
  * 
  * 注：单次会话中只能存在一个`type == 'restart'`的功能气泡，新添加的`restart`功能气泡将替换旧的并处在最新位置。
- * @returns 返回创建并附加到`chatContainer`的`chatBubble`元素。
+ * @returns 返回创建并附加到`chatContainer`的`chatBubble` (`ArrayElement`) 元素。
  */
 function createErrBubble(time,who,content,tag,type) {
     const randomId = 'E' + createCode();
@@ -1502,26 +1570,27 @@ function createErrBubble(time,who,content,tag,type) {
  * @param type - “type”参数用于确定“reSend”函数中要采取的操作。它可以具有三个可能的值：`resend`、`access`或`relink`。
  */
 async function reSend(errorBubbleId,type) {
+    log(5,`Retry to send! type: ${type}`)
     if (type == 'resend') {
         inputByUser()
     } else if (type == 'access') {
-        tempBubble = appendChatBubble('Connecting','assistant',"<div class=\"chatLoader\"></div>")
+        tempBubble = appendChatBubble('Connecting','assistant',"<div class=\"chatLoader\"></div>",null,'tempBubble')
         getACCESS(`重新申请`,false)
         .then(() => {
             try {
-            chatContainer.removeChild(tempBubble)
+            if (tempBubble) chatContainer.removeChild(tempBubble)
             } catch {}
         })
     } else if (type == 'relink') {
         linkIO()
     } else {
-        tempBubble = appendChatBubble('Connecting','assistant',"<div class=\"chatLoader\"></div>")
+        tempBubble = appendChatBubble('Connecting','assistant',"<div class=\"chatLoader\"></div>",null,'tempBubble')
         linkIO()
         getACCESS(`重新申请`)
         .then((plus) => {
         inputByUser()
         try {
-            chatContainer.removeChild(tempBubble)
+            if (tempBubble) chatContainer.removeChild(tempBubble)
         } catch {}
         })
     }
@@ -1540,23 +1609,30 @@ async function reSend(errorBubbleId,type) {
 window.api.onWindowShow((value) => {
     if (value) {
         input.focus();
+        dropScreen.style.display = 'none'
+        cancelDrag.style.display = 'none'
+        if (oldSaveNowName) {
+            document.getElementById('nowTitle').textContent = oldSaveNowName
+            oldSaveNowName = ''
+            saveNow.style.opacity = ''
+            }
         closeWhenClickOther()
     }
   })
 
 const dropLabel = document.getElementById('dropLabel')
 const dropScreen = document.getElementById('dropScreen')
-
+const saveNow = document.getElementById('saveNow')
 
 // 当有文件被拖动到区域上方时阻止默认行为
-body.addEventListener('dragover', function(e) {
+mainScreen.addEventListener('dragover', function(e) {
     e.stopPropagation();
     e.preventDefault();
     dropScreen.style.display = 'block'
 });
 
 // 当文件离开该区域时恢复原状，并再次防止默认行为。
-body.addEventListener('dragleave', function(e) {
+mainScreen.addEventListener('dragleave', function(e) {
     e.stopPropagation();
     e.preventDefault();
     dropScreen.style.display = 'none'
@@ -1564,10 +1640,9 @@ body.addEventListener('dragleave', function(e) {
 
 
     // 当有文件被放下时执行相关操作
-    body.addEventListener('drop', function(e) {
+    mainScreen.addEventListener('drop', function(e) {
     e.stopPropagation();
     e.preventDefault();
-    dropScreen.style.display = 'none'
     var files = e.dataTransfer.files; // 获取文件对象
     console.log(files)
     var fileName = files?.[0]?.name;
@@ -1575,9 +1650,93 @@ body.addEventListener('dragleave', function(e) {
     if (regexExtension == 'zero') {
         inputChat(files[0])
     }
+    dropScreen.style.display = 'none'
+    cancelDrag.style.display = 'none'
     });
 
 
+    // 当有文件被拖动到取消按钮上方时阻止默认行为
+cancelDrag.addEventListener('dragover', function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    cancelDrag.style.backgroundColor = 'rgba(255,100,100)'
+});
+
+// 当文件离开该区域时恢复原状，并再次防止默认行为。
+cancelDrag.addEventListener('dragleave', function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    cancelDrag.style.backgroundColor = ''
+    });
+
+    let oldSaveNowName = ''
+
+    
+    // 当有文件被放下时执行相关操作
+    cancelDrag.addEventListener('drop', function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+
+    cancelDrag.style.backgroundColor = ''
+    dropScreen.style.display = 'none'
+    cancelDrag.style.display = 'none'
+    if (oldSaveNowName) {
+    document.getElementById('nowTitle').textContent = oldSaveNowName
+    oldSaveNowName = ''
+    }
+
+    });
+
+    saveNow.addEventListener('dragover', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (document.getElementById('nowTitle').textContent !== '松开鼠标以导入...') oldSaveNowName = document.getElementById('nowTitle').textContent
+        document.getElementById('nowTitle').textContent = '松开鼠标以导入...'  
+        saveNow.style.opacity = '0.7' 
+        console.log(oldSaveNowName)
+    })
+
+    // 当文件离开该区域时恢复原状，并再次防止默认行为。
+        saveNow.addEventListener('dragleave', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            document.getElementById('nowTitle').textContent = oldSaveNowName
+            oldSaveNowName = ''
+            saveNow.style.opacity = '' 
+    });
+
+    // 当有文件被放下时执行相关操作
+    saveNow.addEventListener('drop', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        dropScreen.style.display = 'none'
+        var files = e.dataTransfer.files; // 获取文件对象
+        console.log(files)
+        var fileName = files?.[0]?.name;
+        var regexExtension = /(?:\.([^.]+))?$/.exec(fileName)[1];
+        if (regexExtension == 'zero') {
+            inputChat(files[0])
+        }
+        oldSaveNowName = ''
+        dropScreen.style.display = 'none'
+        cancelDrag.style.display = 'none'
+        saveNow.style.opacity = '' 
+        });
+
+        body.addEventListener('dragover', (e) => {
+            e.preventDefault()
+        })
+
+        body.addEventListener('drop', (e) => {
+            e.preventDefault()
+            dropScreen.style.display = 'none'
+            cancelDrag.style.display = 'none'
+            if (oldSaveNowName) {
+                document.getElementById('nowTitle').textContent = oldSaveNowName
+                oldSaveNowName = ''
+                saveNow.style.opacity = '' 
+                }
+        })
 
 
     function saveFile(noDelOld,prefix = '') {
@@ -1588,6 +1747,7 @@ body.addEventListener('dragleave', function(e) {
         if (nowTitle.textContent == '新会话') {
         nowTitle.textContent = chatLog[0].content
         }
+        log(5,`Try to save file.`)
         let data = {
             title: prefix + ele.querySelector('p')?.textContent || "无名称会话",
             outputTime: getTime(),
@@ -1691,6 +1851,7 @@ function addSaveToList(title,opid,time) {
 
 async function getSavesData() {
 const data = await window.api.getSavesData()
+log(5,`Get all saves data.`)
 for (i=0;i<data.length;i++) {
     console.log(data[i])
     addSaveToList(data[i].title,data[i].outputID,data[i].outputTime)
@@ -1708,8 +1869,10 @@ getSavesData()
 
 function dragFile(event,save) {
     event.preventDefault()
+    log(5,`Try to drag file.`)
         const opid = save.getAttribute('outputId')
         if (opid) {
+        cancelDrag.style.display = 'block'
         window.api.startDrag(`${opid}.zero`)
         } else {}
 }
@@ -1719,6 +1882,7 @@ function addSaveFile() {
     document.getElementById('saveNow').setAttribute('outputId','')
     const info = saveFile(true)
     if (info) {
+    log(5,`Try to save file.`)
     document.getElementById('saveNow').setAttribute('outputId','')
     const th = addSaveToList(info[1],info[0],getTime())
     document.getElementById('histroyCount').textContent = Number(document.getElementById('histroyCount').textContent) + 1
@@ -1734,6 +1898,7 @@ function addSaveFile() {
 
 function delSaveFile(opid) {
     const ele = document.getElementById(`output-${opid}`).parentElement
+    log(5,`Try to delete file.`)
     ele.animate(
         [
           // keyframes
@@ -1753,6 +1918,7 @@ function delSaveFile(opid) {
 }
 
 function editSaveTitle(opid) {
+    log(5,`Try to edit title.`)
     if (opid !== 'saveNow') {
     const ele = document.getElementById(`output-${opid}`).firstElementChild
     const newTitle = window.api.prompt(`在此输入这个存档的备注（≤20字）`,ele.textContent)
@@ -1790,12 +1956,12 @@ window.api.sttProcess((object) => {
             break;
         case "connection":
             if (object.content) {
-            sttInfo.textContent = `链接正常`
+            sttInfo.textContent = `模块链接正常`
             sttType.textContent = `闲置中...按住Tab键发起语音输入`
             sttInfo.style.color = ``
             sttStat = true
             } else {
-                sttInfo.textContent = `链接丢失`
+                sttInfo.textContent = `模块链接丢失`
                 sttInfo.style.color = `red`
                 sttStat = false
             }
@@ -1812,11 +1978,10 @@ window.api.sttProcess((object) => {
             break;
         case "result":
             inputByUser(object.content,true)
-            canSend = true
-            input.classList.remove('cantSend');
-            inputButton.classList.remove('cantSend');
+            input.disabled = false
+
             tempSttBubble?.remove()
-            sttType.textContent = `闲置中...按住Tab发起语音输入`
+            sttType.textContent = `闲置中...按住Tab发起语音输入` // 重置为正常提示词
             sttProcessInfo.style.color = ``
             useStt = false
             break
@@ -1828,9 +1993,7 @@ window.api.sttProcess((object) => {
 let tempSttBubble
 function startSound2Text() {
     if (sttStat && canSend && !useStt) {
-    canSend = false
-    input.classList.add('cantSend');
-    inputButton.classList.add('cantSend');
+    input.disabled = true
     input.blur()
     window.api.startStt()
     useStt = true
@@ -1876,7 +2039,7 @@ document.addEventListener('keyup', function(event) {
   });
 
 } else {
-    sttProcessInfo.textContent = `|　语音输入模块已关闭　|`
+    sttProcessInfo.textContent = `语音输入模块已关闭`
 }
 
 document.addEventListener('keyup', function(event) {
@@ -1885,7 +2048,7 @@ document.addEventListener('keyup', function(event) {
     }
   });
 
-document.addEventListener('keypress', function(event) {
+main.addEventListener('keypress', function(event) {
     const focusedElement = document.activeElement;
     const inputfocused = focusedElement.id == `input`
     if (event.code === 'Space' && !useStt && !inputfocused) {
@@ -1899,40 +2062,68 @@ function restart() {
     window.api.restart()
 }
 
+let updateVersionBubble = null
+let upToVersion = null
 
+window.api.updateVersion((info) => {
+    const version = info.version
+    const type = info.type
+    console.log(version)
+    updateVersionBubble = appendChatBubble(getTime(),'letter',`(●'◡'●)ﾉ♥ [${type.toUpperCase()}] <a href="javascript:window.api.openReleasePage('${version}')" >${version}</a> 版本已经可用！点击按钮开始更新！`,null,null,null,true,false,createFunctionButton(null,createCode(),`startUpdate('${version}')`,`Just Do it.`))
+    upToVersion = version
+})
 
-window.api.updateListener((object) => {
-    switch (object.type) {
-        case 'available': {
-        const fakeContent = {
-            "time": getTime(),
-            "content": `已有新的版本更新可用，自动下载。`,
-            "user": "letter"
-        }
-        parseResult({AISend:fakeContent})
-            break;
-        }
-        case 'downloaded': {
-        const fakeContent = {
-                "time": getTime(),
-                "content": `版本「${object.content}」现已可用 <br><button class="btnInChat" style="margin-top:20px;padding:10px" id="" onclick="window.api.quitAndInstall()">重启以应用<span class="iconfont icon-ic_Refresh closeHideBtn"></span></button>`,
-                "user": "letter" 
-        }
-        parseResult({AISend:fakeContent}) 
-            break;
-        }
-        default:
-            break;
+function startUpdate(version) {
+    window.api.tryToUpdate()
+    if (updateVersionBubble) {
+        updateVersionBubble.remove()
+        updateVersionBubble = appendChatBubble(getTime(),'clear',`${sessionStorage.getItem('version')} => [Starting] => ${version}`,null,'updateBubble')
     }
+}
+
+window.api.downloadProgress((data) => {
+    console.log(data)
+switch (data.type) {
+    case 'progress': {
+        if (updateVersionBubble) {
+            updateVersionBubble.remove()
+            updateVersionBubble = appendChatBubble(getTime(),'clear',`更新：${sessionStorage.getItem('version')} => [${data.content || 'Unknow'}%] => ${upToVersion}`,null,'updateBubble')
+        }
+        break;
+    }
+    case 'failed': {
+        if (updateVersionBubble) {
+            updateVersionBubble.remove()
+            updateVersionBubble = appendChatBubble(getTime(),'error',`(T ^ T) 下载失败！请使用标准安装&更新器进行更新！`,null,'updateBubble')
+        }
+        break;
+    }
+    
+    case 'done': {
+        if (updateVersionBubble) {
+            setTimeout(() => {
+                updateVersionBubble.remove()
+                updateVersionBubble = appendChatBubble(getTime(),'letter',`(●'◡'●)ﾉ♥ ${upToVersion}版本下载成功！点击按钮完成更新！`,null,null,null,true,false,createFunctionButton(null,createCode(),`window.api.closeAndUpdate()`,`好耶！`))    
+            }, 200);
+}
+    }
+
+    case 'text': {
+        if (updateVersionBubble) {
+            updateVersionBubble.remove()
+            updateVersionBubble = appendChatBubble(getTime(),'clear',`更新：${sessionStorage.getItem('version')} => [${data.content ? `${data.content}%`:  'Downloading '} ] => ${upToVersion}`,null,'updateBubble')
+        }
+    }
+
+    default:
+        break;
+}
 })
 
 
 
 
-
-
-
-function createFunctionButton(type,randomId,onclick,content) {
+function createFunctionButton(type,id,onclick,content) {
     // 创建button元素
     var button = document.createElement('button');
 
@@ -1952,10 +2143,10 @@ function createFunctionButton(type,randomId,onclick,content) {
     }
 
       // 设置onclick事件处理器。注意：这里简化了原始字符串中`${randomId}`和`${type || 'all'}`部分。
-      button.setAttribute('onclick', onclick);
-
+    button.setAttribute('onclick', onclick);
+    button.id = id
       // 设置按钮内部文本及图标（这里使用textContent简化了原始html结构）
-      button.innerHTML = content;
+    button.innerHTML = content;
 
     return button
 }
@@ -1993,7 +2184,7 @@ function addTask(title,time,content = '') {
 
 window.api.getTask((arr) => {
     console.log(arr)
-
+    log(5,`Get all tasks.`)
         document.querySelectorAll('.taskTr').forEach((item) => {
             item.remove()
         })
@@ -2009,6 +2200,7 @@ const taskTableContainer = document.getElementById('task-table-container')
 const taskWave = document.getElementById('taskWave')
 
 window.api.pastTask(async (object) => {
+    log(1,`Found a past task.`)
     console.log(object)
     let url = `${root_url}/ai`
     let config = {
@@ -2040,7 +2232,7 @@ window.api.pastTask(async (object) => {
         }
     axios(config).then(async (response) => {
         if (response.data !== 'Ticking') { 
-
+        log(1,`Show task notifaction.`)
     appendChatBubble(object.time,'system',`[日程提醒] <b>${object.title}</b> 已被触发！快去做事吧！<br>`,null,null,null,true,false,createNotifactionInMessage(`<em style=\"opacity:0.8\">${object.content ?? ''}<em>`,3))
 }
 document.getElementById('oldTask').innerHTML = `<s>${object.title}</s>`;
@@ -2061,6 +2253,7 @@ window.api.getCruise(() => {
 })
 
 async function removeTask(indexObject) {
+    log(1,`Remove a task.`)
     const index = JSON.parse(indexObject).index
     const tasks = document.querySelectorAll('.taskTr')
     const task = tasks[index]
@@ -2077,6 +2270,7 @@ async function removeTask(indexObject) {
 
 
 function removeAllTasks() {
+    log(1,`Remove all tasks.`)
     document.querySelectorAll('.taskTr').forEach((item) => {
         item.remove()
     })
@@ -2119,6 +2313,7 @@ async function resetTabelMargin() {
    * @returns - 将返回创建后的element，随后可以插入进要插入的地方。
    */
     function createNotifactionInMessage(content,style) {
+        log(1,`Create a notifaction in message: ${content} (${style})`)
         let iconClass = ''
         let pColor = ''
         switch (style) {
@@ -2154,7 +2349,7 @@ async function resetTabelMargin() {
         iconElement.style.display = 'inline-block';
         iconElement.style.marginRight= '10px';
         iconElement.style.fontSize= '1rem';
-        pColor ? setColor() : null;
+        pColor ? setColor():  null;
     
         function setColor() {
             messageTip.style.backgroundColor = pColor
@@ -2173,6 +2368,7 @@ async function resetTabelMargin() {
 
     window.api.openFile((fileData) => {
         try {
+            log(5,`Execute open file with url.`)
             refreshScreen()
             document.getElementById('refreshIcon').classList.remove('icon-ic_Refresh') 
             document.getElementById('refreshIcon').classList.add('icon-shanchu-delete') 
@@ -2198,16 +2394,126 @@ async function resetTabelMargin() {
         }
     })
 
+    if (!localStorage.getItem('isFirst')) {
+        log(5,`This is the first time to open the app.`)
+        appendChatBubble(getTime(),'letter',`欢迎使用 ZERO AI CRUISE 客户端！
+在这里，你可以体验到与网站中截然不同的使用体验，比如：
+  
+1. 全新的语音输入系统；
+2. <code>Alt</code>+<code>Space</code>随时唤出；
+3. 存档自动备份，自动罗列；
+4. 全新的日程提醒功能；
+
+and more ...
+<button class="btnInChat" style="margin-top:20px;padding:10px" id="" onclick="refreshScreen(false,false)">好耶！<span class="iconfont icon-icon_line_thumb-up closeHideBtn"></span></button>`)
+        localStorage.setItem('isFirst','false')
+    }
+
+    let tickOccupancy = false // 正常情况下，它应该只有极短的时间为true，标志rendererTick的占用状态
+    let tickCount = 0 // 记录从渲染进程启动到结束的全部tick数
+    let tickOccupancyCount = 0 // 记录渲染进程刻被占用堵塞的tick数
+    const tickTarget = new EventTarget()
+    /**
+     * @argument renderTick 全局广播Tick触发，但仅用于调试与检测，不应通过tickTarget监听器触发任何逻辑操作，而是统一放在`executeTick`函数内。
+     */
+    const renderTick = new Event('renderTick', {
+        bubbles: true,
+        cancelable: false,
+        composed: true,
+        detail: {
+            tickCount: 0,
+            tickOccupancyCount: 0,
+            tickOccupancy: false,
+        }
+    });
+    log(5,`[00]Start renderer tick!`,'rendererTick',true)
+    setInterval(async () => {
+        tickCount++
+        if (tickOccupancy) {
+            tickOccupancyCount++
+            log(3,`[${tickCount}]Renderer tick is occupied! (${tickOccupancyCount ? `${(tickOccupancyCount / tickCount) * 100}%`:  '100%' })`,'rendererTick',true)
+            return
+        }
+        tickOccupancy = true // 占用渲染程序刻
+        await executeTick().then((boolean) => {
+            tickOccupancy = !boolean // 释放占用
+        })
+        .catch(async error => {
+            log(4,`[${tickCount}]Renderer tick failed: ${error}`,'rendererTick',true)
+            await window.api.showError('ZERO ERROR',`渲染程序刻出现错误，由于这个错误在程序基本运行时上出现，所以它是致命的。`,error)
+            reject(error)
+        })
+
+    }, 250);
 
 
-    setInterval(() => {
-        if (chatContainer.childElementCount > 0) {
-            mainScreen.style.backgroundImage = ''
-        } else {
-            if (plus) {
-                mainScreen.style.backgroundImage = `url('./AKETA SPACE GOLD.webp')`
+    async function executeTick() {
+        return new Promise(async (resolve, reject) => {
+        try { // 每Tick需要执行的操作。
+            tickTarget.dispatchEvent(renderTick) // 全局广播Tick触发，但仅用于调试与检测，不应通过tickTarget监听器触发任何逻辑操作，而是统一放在本函数内。
+            if (document.querySelectorAll('#tempBubble').length > 1) {
+                let tempBubbles = document.querySelectorAll('#tempBubble');
+                // 遍历并移除第一个之外的所有元素
+                for (let i = 0; i < tempBubbles.length - 1; i++) {
+                    tempBubbles[i].remove();
+                }
+            }
+            if (chatContainer.childElementCount > 0) {
+                mainScreen.style.backgroundImage = ''
             } else {
-                mainScreen.style.backgroundImage = `url('./AKETA SPACE-Fixed.webp')`
+                if (plus) {
+                    mainScreen.style.backgroundImage = `url('./AKETA SPACE GOLD.webp')`
+                } else {
+                    mainScreen.style.backgroundImage = `url('./AKETA SPACE-Fixed.webp')`
+                }
+            }
+            tempBubble = document.getElementById('tempBubble') || null
+            canSend = !input.disabled
+        } catch (error) {
+            reject(error)
+        }
+        resolve(true)
+    })
+    }
+
+
+
+    window.onerror = uncaughtException
+    async function uncaughtException (message,source, lineno, colno, error  ) {
+        log(4,`————————————————————————————————————`,'RendererUncaughtException');
+        log(4,`RendererException: ${message}`,'RendererUncaughtException');
+        log(4,`at: [${getCallerFunctionDetail()}]`,'RendererUncaughtException');
+        log(4,`at: ${source}`,'RendererUncaughtException');
+        log(4,`at: ${lineno}:${colno}`,'RendererUncaughtException');
+        log(4,`do: ${error}`,'RendererUncaughtException');
+        log(4,`at: ${getTime()}`,'RendererUncaughtException');
+        log(4,`renderTicks: ${tickCount}`,'RendererUncaughtException');
+        log(4,`————————————————————————————————————`,'RendererUncaughtException');
+        const errBubbles = createErrBubble(getTime(),'error',`渲染进程发生致命错误，这个异常是在基本进程运行时上抛出的，并且程序没能成功捕获它。\n程序必须重启以尝试恢复正常，或你可以求助开发者以获取进一步的帮助。`,null,'restart')
+        errBubbles[1].appendChild(createNotifactionInMessage(`渲染进程的错误不会生成错误报告，它位于主进程的日志文件中。`,3))
+        socket.disconnect()
+        input.disabled = true
+        }
+      
+      
+      window.addEventListener('unhandledrejection', (event) => {
+        log(3,`[${getCallerFunctionDetail()}]Promise Rejected: ${event.promise} Reason: ${event.reason}`,'RendererUnhandledRejection');
+        event.preventDefault()
+    });
+
+
+      function getCallerFunctionDetail(){
+        let stackInfo = new Error().stack.split("\n");
+        
+        if(stackInfo.length > 3){
+            let callerStackLine = stackInfo[3];
+            let patternMatchResult = callerStackLine.match(/at (\S+)/);
+            
+            if(patternMatchResult && patternMatchResult[1]){
+                return patternMatchResult[1];       // 返回caller function detail.
             }
         }
-    }, 1000);
+        
+        return null;                                // 如果无法确定，则返回null。
+        }
+        
