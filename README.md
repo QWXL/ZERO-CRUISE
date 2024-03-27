@@ -1,4 +1,5 @@
-<img src="https://chat.zero-ai.online/src/AKETA-banner.png" width="100%">
+![AKETA-banner](https://github.com/QWXL/ZERO-CRUISE/assets/82765188/fa1bdd95-9d18-4448-b750-d2e0111eb7f1)
+
 <h1>ZERO AI On Windows Client<br>
 零号智能 巡航客户端</h1>
 
